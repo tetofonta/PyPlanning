@@ -2,19 +2,15 @@ from unified_planning.engines import PlanGenerationResultStatus
 from unified_planning.shortcuts import OneshotPlanner, And
 
 from domain.PDDLEnvironment import PDDLEnvironment
-from domain.cubeotta.CubeSide import CubeSide
+from domain.cubeotta.Cube import Cube
 
 env = PDDLEnvironment.get_instance()
 
-AA = CubeSide(0)
-BB = CubeSide(1)
-CC = CubeSide(2)
-A = env.add_object(AA)
-B = env.add_object(BB)
-C = env.add_object(CC)
+cube1 = env.add_object(Cube(0))
+cube2 = env.add_object(Cube(1))
 
 problem = env.problem()
-problem.add_goal(And(CubeSide.painted(A), CubeSide.painted(B), CubeSide.painted(C)))
+problem.add_goal(And(cube1.instance.painted(), cube2.instance.painted()))
 print(problem)
 
 with OneshotPlanner(problem_kind=problem.kind) as planner:
@@ -23,6 +19,7 @@ with OneshotPlanner(problem_kind=problem.kind) as planner:
         print("Pyperplan returned: %s" % result.plan)
         for action in result.plan.actions:
             env.execute_action(action)
-        print(AA, BB, CC)
+        # print(cube1.isPainted())
+        # print(cube2.isPainted())
     else:
         print("No plan found.")

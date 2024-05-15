@@ -6,6 +6,10 @@ from unified_planning.shortcuts import UserType, BoolType
 
 from domain.PDDLObject import PDDLObject
 
+class PDDLObjectType(Object):
+    def __init__(self, instance, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.instance = instance
 
 class PDDLEnvironment:
     __PDDL_ENV_INSTANCE = None
@@ -43,14 +47,14 @@ class PDDLEnvironment:
     def add_object(self, instance: PDDLObject):
         assert type(instance).__name__ in self.types
         typ = self.types[type(instance).__name__]
-        self.objects[instance.get_id()] = (Object(instance.get_id(), typ), instance)
+        self.objects[instance.get_id()] = PDDLObjectType(instance, instance.get_id(), typ)
         for t in type(instance).__mro__:
             if t == PDDLObject or t == object:
                 break
             if t.__name__ not in self.hierarchy:
                 self.hierarchy[t.__name__] = []
             self.hierarchy[t.__name__].append(instance.get_id())
-        return self.objects[instance.get_id()][0]
+        return self.objects[instance.get_id()]
 
     def __func_name(self, func):
         return func.__code__.co_qualname.replace('.', '_') if '__code__' in dir(func) else self.__func_name(func.func)
@@ -101,14 +105,14 @@ class PDDLEnvironment:
     def get_object(self, instance):
         assert isinstance(instance, PDDLObject)
         assert instance.get_id() in self.objects
-        return self.objects[instance.get_id()][0]
+        return self.objects[instance.get_id()]
 
     def get_object_instance(self, instance):
-        return self.objects[instance.name][1]
+        return self.objects[instance.name].instance
 
     def execute_action(self, action: ActionInstance):
         act = self.actions[action.action.name][4]
-        parameters = list(map(lambda x: self.objects[str(x)][1], action.actual_parameters))
+        parameters = list(map(lambda x: self.objects[str(x)].instance, action.actual_parameters))
         act(*parameters)
 
     def predicate(self, fn):
@@ -125,7 +129,7 @@ class PDDLEnvironment:
         problem = Problem(name if name is not None else str(uuid.uuid1()))
 
         for obj in self.objects.values():
-            problem.add_object(obj[0])
+            problem.add_object(obj)
 
         # create predicates
         self.compile_predicates()
@@ -135,8 +139,8 @@ class PDDLEnvironment:
 
             for values in self.__for_all((), *map(lambda t: self.hierarchy[t], params.values())):
                 problem.set_initial_value(
-                    self.predicates_compiled[k](*map(lambda x: self.objects[x][0], values)),
-                    k(*map(lambda x: self.objects[x][1], values))
+                    self.predicates_compiled[k](*map(lambda x: self.objects[x], values)),
+                    k(*map(lambda x: self.objects[x].instance, values))
                 )
 
         # Actions
