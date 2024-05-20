@@ -1,4 +1,3 @@
-from unified_planning.model import Variable
 from unified_planning.shortcuts import Not, And, Exists
 from domain.PDDLEnvironment import PDDLEnvironment
 from domain.PDDLObject import PDDLObject
@@ -38,36 +37,27 @@ class Cube(PDDLObject):
     def loaded(self: 'Cube'):
         return self.isLoaded()
 
-    @PDDLPrecondition(lambda _self: And(Not(Cube.loaded(_self)), Not(Exists(Cube.loaded(Variable("cube", PDDLEnvironment.get_instance().get_type(Cube))), Variable("cube", PDDLEnvironment.get_instance().get_type(Cube))))))
-    @PDDLEffect(lambda _self: Cube.loaded(_self), True)
+    @PDDLPrecondition(lambda cube, var_cube:
+                      And(Not(cube.loaded()),
+                          Not(Exists(Cube.loaded(var_cube), var_cube))))
+    @PDDLEffect(lambda cube: cube.loaded(), True)
     @PDDLAction
-    def load(self: 'Cube'):
-        print(f"Loading cube {self.idx}")
-        self.__loaded = True
+    def load(cube: 'Cube'):
+        print(f"Loading cube {cube.idx}")
+        cube.__loaded = True
 
-    @PDDLPrecondition(lambda _self: Cube.loaded(_self))
-    @PDDLEffect(lambda _self: Cube.loaded(_self), False)
+    @PDDLPrecondition(lambda cube: cube.loaded())
+    @PDDLEffect(lambda cube: cube.loaded(), False)
     @PDDLAction
-    def unload(self: 'Cube'):
-        print(f"Unloading cube {self.idx}")
-        self.__loaded = False
+    def unload(cube: 'Cube'):
+        print(f"Unloading cube {cube.idx}")
+        cube.__loaded = False
 
-    @PDDLPrecondition(lambda _self, _old_up, _new_up: And(CubeSide.up(_old_up), Not(CubeSide.up(_new_up)), Cube.cube_has_side(_self, _old_up), Cube.cube_has_side(_self, _new_up)))
-    @PDDLEffect(lambda _self, _old_up, _new_up: CubeSide.up(_old_up), False)
-    @PDDLEffect(lambda _self, _old_up, _new_up: CubeSide.up(_new_up), True)
+    @PDDLPrecondition(lambda cube, old_up, new_up: And(old_up.up(), Not(new_up.up()), cube.cube_has_side(old_up), cube.cube_has_side(new_up)))
+    @PDDLEffect(lambda old_up: old_up.up(), False)
+    @PDDLEffect(lambda new_up: new_up.up(), True)
     @PDDLAction
-    def rotate(self: 'Cube', old_up: 'CubeSide', new_up: 'CubeSide'):
-        print(f"Rotating cube {self.idx} side {new_up.idx} up")
+    def rotate(cube: 'Cube', old_up: 'CubeSide', new_up: 'CubeSide'):
+        print(f"Rotating cube {cube.idx} side {new_up.idx} up")
         old_up.setUp(False)
         new_up.setUp(True)
-
-    @PDDLPrecondition(lambda _self, _side: And(
-        Not(CubeSide.painted(_side)),
-        CubeSide.up(_side),
-        Cube.cube_has_side(_self, _side),
-        Cube.loaded(_self)))
-    @PDDLEffect(lambda _self, _side: CubeSide.painted(_side), True)
-    @PDDLAction
-    def paint(self: 'Cube', side: 'CubeSide'):
-        print(f"Painting side {side.idx} of cube {side.cube} (Side was {'up' if side.isUp() else 'down'})")
-        side.setPainted(True)

@@ -1,4 +1,9 @@
+from unified_planning.shortcuts import And, Not
+
 from domain.PDDLObject import PDDLObject
+from domain.decorators.PDDLAction import PDDLAction
+from domain.decorators.PDDLEffect import PDDLEffect
+from domain.decorators.PDDLPrecondition import PDDLPrecondition
 from domain.decorators.PDDLPredicate import PDDLPredicate
 from domain.decorators.PDDLType import PDDLType
 
@@ -21,9 +26,6 @@ class CubeSide(PDDLObject):
     def setUp(self, up):
         self.__up = up
 
-    def setPainted(self, p):
-        self.__painted = p
-
     @PDDLPredicate
     def painted(self: 'CubeSide'):
         return self.isPainted()
@@ -31,6 +33,17 @@ class CubeSide(PDDLObject):
     @PDDLPredicate
     def up(self: 'CubeSide'):
         return self.isUp()
+
+    @PDDLPrecondition(lambda cube, side: And(
+        Not(side.painted()),
+        side.up(),
+        cube.cube_has_side(side),
+        cube.loaded()))
+    @PDDLEffect(lambda cube, side: side.painted(), True)
+    @PDDLAction
+    def paint(side: 'CubeSide', cube: 'Cube'):
+        print(f"Painting side {side.idx} of cube {side.cube} (Side was {'up' if side.isUp() else 'down'})")
+        side.__painted = True
 
     def __str__(self):
         return f"CubeSide:{self.__painted, self.__up}"

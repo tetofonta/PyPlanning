@@ -1,15 +1,68 @@
 import uuid
+from collections import namedtuple, OrderedDict
+from typing import Optional
 
-from unified_planning.model import Object, Fluent, Problem, InstantaneousAction
+from unified_planning import Environment
+import unified_planning as up
+from unified_planning.model import Object, Fluent, Problem, InstantaneousAction, Variable, Parameter
 from unified_planning.plans import ActionInstance
 from unified_planning.shortcuts import UserType, BoolType
 
 from domain.PDDLObject import PDDLObject
 
+Action = namedtuple("Action", ["name", "kwargs", "preconditions", "effects", "func"])
+Type = namedtuple("Type", ["type", "cls"])
+
+
 class PDDLObjectType(Object):
     def __init__(self, instance, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.instance = instance
+
+
+class PDDLParameter(Parameter):
+    def __init__(self, name: str, typename: Type, *args, **kwargs):
+        super().__init__(name, typename.type, *args, **kwargs)
+        self.env = PDDLEnvironment.get_instance()
+        self.data = {}
+        for method_or_attr in dir(typename.cls):
+            attr = getattr(typename.cls, method_or_attr)
+            if method_or_attr.startswith('__') or method_or_attr.endswith('__'):
+                continue
+            if self.env.func_name(attr) in self.env.rev_predicates.keys():
+                self.data[method_or_attr] = attr
+
+    def __getattr__(self, item):
+        return lambda *args, **kwargs: self.data[item](self, *args, **kwargs)
+
+
+class PDDLAction(InstantaneousAction):
+    def __init__(self,
+                 _name: str,
+                 _parameters=None,
+                 _env: Optional[Environment] = None,
+                 **kwargs
+                 ):
+        super().__init__(_name, OrderedDict(), _env)
+        self._parameters = OrderedDict()
+        if _parameters is not None:
+            assert len(kwargs) == 0
+            for n, t in _parameters.items():
+                assert self._environment.type_manager.has_type(
+                    t.type
+                ), "type of parameter does not belong to the same environment of the action"
+                self._parameters[n] = PDDLParameter(
+                    n, t, self._environment
+                )
+        else:
+            for n, t in kwargs.items():
+                assert self._environment.type_manager.has_type(
+                    t.type
+                ), "type of parameter does not belong to the same environment of the action"
+                self._parameters[n] = PDDLParameter(
+                    n, t, self._environment
+                )
+
 
 class PDDLEnvironment:
     __PDDL_ENV_INSTANCE = None
@@ -21,6 +74,7 @@ class PDDLEnvironment:
         self.predicates = {}
         self.rev_predicates = {}
         self.actions = {}
+        self.type_action = {}
         self.predicates_compiled = {}
 
     @staticmethod
@@ -36,17 +90,17 @@ class PDDLEnvironment:
             father = None
         if father is not None:
             assert father.__name__ in self.types
-            father = self.types[father.__name__]
+            father = self.types[father.__name__].type
 
-        self.types[typ.__name__] = UserType(typ.__name__, father=father)
+        self.types[typ.__name__] = Type(UserType(typ.__name__, father=father), typ)
 
     def get_type(self, typ):
         assert typ.__name__ in self.types
-        return self.types[typ.__name__]
+        return self.types[typ.__name__].type
 
     def add_object(self, instance: PDDLObject):
         assert type(instance).__name__ in self.types
-        typ = self.types[type(instance).__name__]
+        typ = self.types[type(instance).__name__].type
         self.objects[instance.get_id()] = PDDLObjectType(instance, instance.get_id(), typ)
         for t in type(instance).__mro__:
             if t == PDDLObject or t == object:
@@ -56,18 +110,29 @@ class PDDLEnvironment:
             self.hierarchy[t.__name__].append(instance.get_id())
         return self.objects[instance.get_id()]
 
-    def __func_name(self, func):
-        return func.__code__.co_qualname.replace('.', '_') if '__code__' in dir(func) else self.__func_name(func.func)
+    @staticmethod
+    def __root_func(func):
+        return func if '__code__' in dir(func) else PDDLEnvironment.__root_func(func.func)
+
+    @staticmethod
+    def func_name(func):
+        rf = PDDLEnvironment.__root_func(func)
+        if rf is None:
+            return None
+        return rf.__code__.co_qualname.replace('.', '_')
 
     def __func_to_params(self, func):
-        name = self.__func_name(func)
+        name = self.func_name(func)
         params = func.__code__.co_varnames[:func.__code__.co_argcount]
         types = func.__annotations__
 
         kwargs = {}
         for p in params:
             assert p in types
-            kwargs[f"_{p}"] = types[p] if type(types[p]) is str else types[p].__name__
+            var_name = p
+            if p == 'self':
+                var_name = f"_{p}"
+            kwargs[var_name] = types[p] if type(types[p]) is str else types[p].__name__
 
         return name, params, kwargs
 
@@ -78,17 +143,17 @@ class PDDLEnvironment:
 
     def add_action(self, func):
         name, params, kwargs = self.__func_to_params(func)
-        self.actions[name] = (name, kwargs, list(), list(), func)
+        self.actions[name] = Action(name, kwargs, list(), list(), func)
 
     def add_action_precondition(self, func, precond):
-        name = self.__func_name(func)
+        name = self.func_name(func)
         assert name in self.actions.keys()
-        self.actions[name][2].append(precond)
+        self.actions[name].preconditions.append(precond)
 
     def add_action_effect(self, func, predicate, value: bool):
-        name = self.__func_name(func)
+        name = self.func_name(func)
         assert name in self.actions.keys()
-        self.actions[name][3].append((predicate, value))
+        self.actions[name].effects.append((predicate, value))
 
     def __for_all(self, tup, *lists):
         if len(lists) == 0:
@@ -111,19 +176,31 @@ class PDDLEnvironment:
         return self.objects[instance.name].instance
 
     def execute_action(self, action: ActionInstance):
-        act = self.actions[action.action.name][4]
+        act = self.actions[action.action.name].func
         parameters = list(map(lambda x: self.objects[str(x)].instance, action.actual_parameters))
         act(*parameters)
 
     def predicate(self, fn):
-        return self.predicates_compiled[self.rev_predicates[self.__func_name(fn)]]
+        return self.predicates_compiled[self.rev_predicates[self.func_name(fn)]]
 
     def compile_predicates(self):
         self.predicates_compiled = {}
         for k, v in self.predicates.items():
             name, ret, params, default = v
-            types = {k: self.types[v] for k, v in params.items()}
+            types = {k: self.types[v].type for k, v in params.items()}
             self.predicates_compiled[k] = Fluent(name, ret, **types)
+
+    @staticmethod
+    def __get_func_params(func, *dicts):
+        param_dict = {}
+        merged = {}
+        for d in dicts:
+            merged = merged | d
+
+        for arg_name in func.__code__.co_varnames:
+            assert arg_name in merged
+            param_dict[arg_name] = merged[arg_name]
+        return param_dict
 
     def problem(self, name=None):
         problem = Problem(name if name is not None else str(uuid.uuid1()))
@@ -145,12 +222,14 @@ class PDDLEnvironment:
 
         # Actions
         for name, args, pre, post, _ in self.actions.values():
-            act = InstantaneousAction(name, **{k: self.types[v] for k, v in args.items()})
-            params = {k: act.parameter(k) for k in args.keys()}
+            act = PDDLAction(name, **{k: self.types[v] for k, v in args.items()})
+            params = {k: act.parameter(k) for k, v in args.items()}
+            vars = {f"var_{k}": Variable(k, self.types[v].type) for k, v in args.items()}
+
             for p in pre:
-                act.add_precondition(p(**params))
+                act.add_precondition(p(**PDDLEnvironment.__get_func_params(p, vars, params)))
             for q, v in post:
-                act.add_effect(q(**params), v)
+                act.add_effect(q(**PDDLEnvironment.__get_func_params(q, vars, params)), v)
             problem.add_action(act)
 
         return problem
