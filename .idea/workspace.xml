@@ -5,18 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9d700830-f1a3-4855-8005-ec96c865d918" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/domain/cubeotta/Dryer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/PyPlanning.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/PyPlanning.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/domain/cubeotta/Brush.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/domain/cubeotta/Robot.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/domain/cubeotta/Cube.py" beforeDir="false" afterPath="$PROJECT_DIR$/domain/cubeotta/Cube.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/domain/cubeotta/CubeSide.py" beforeDir="false" afterPath="$PROJECT_DIR$/domain/cubeotta/CubeSide.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/domain/cubeotta/Dryer.py" beforeDir="false" afterPath="$PROJECT_DIR$/domain/cubeotta/Dryer.py" afterDir="false" />
     </list>
-    <list id="8ecf3f06-9f78-4baf-b531-10ec7e74a3d9" name="Changes by stefano" comment="">
-      <change beforePath="$PROJECT_DIR$/domain/PDDLEnvironment.py" beforeDir="false" afterPath="$PROJECT_DIR$/domain/PDDLEnvironment.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/domain/cubeotta/Cube.py" beforeDir="false" afterPath="$PROJECT_DIR$/domain/cubeotta/Cube.py" afterDir="false" />
-    </list>
+    <list id="8ecf3f06-9f78-4baf-b531-10ec7e74a3d9" name="Changes by stefano" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -32,19 +26,8 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="LineStatusTrackerManager">
-    <file path="$PROJECT_DIR$/domain/cubeotta/Cube.py">
-      <ranges>
-        <range start1="0" end1="1" start2="0" end2="1" changelist="9d700830-f1a3-4855-8005-ec96c865d918" />
-        <range start1="19" end1="19" start2="19" end2="20" changelist="9d700830-f1a3-4855-8005-ec96c865d918" />
-        <range start1="29" end1="30" start2="30" end2="31" changelist="9d700830-f1a3-4855-8005-ec96c865d918" />
-        <range start1="32" end1="32" start2="33" end2="36" changelist="9d700830-f1a3-4855-8005-ec96c865d918" />
-        <range start1="39" end1="40" start2="43" end2="44" changelist="8ecf3f06-9f78-4baf-b531-10ec7e74a3d9" />
-        <range start1="41" end1="42" start2="45" end2="46" changelist="8ecf3f06-9f78-4baf-b531-10ec7e74a3d9" />
-        <range start1="48" end1="49" start2="52" end2="54" changelist="9d700830-f1a3-4855-8005-ec96c865d918" />
-        <range start1="55" end1="56" start2="60" end2="65" changelist="9d700830-f1a3-4855-8005-ec96c865d918" />
-      </ranges>
-    </file>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;customColor&quot;: &quot;&quot;,
@@ -116,7 +99,7 @@
       <workItem from="1716210067653" duration="1205000" />
       <workItem from="1716274993877" duration="3695000" />
       <workItem from="1716278987572" duration="3796000" />
-      <workItem from="1716295017552" duration="2070000" />
+      <workItem from="1716295017552" duration="4183000" />
     </task>
     <servers />
   </component>
@@ -125,6 +108,6 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/PyPlanning$main.coverage" NAME="main Coverage Results" MODIFIED="1715872399850" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/PyPlanning$Main.coverage" NAME="Main Coverage Results" MODIFIED="1716296963139" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/PyPlanning$Main.coverage" NAME="Main Coverage Results" MODIFIED="1716298494700" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
