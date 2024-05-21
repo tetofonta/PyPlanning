@@ -14,23 +14,39 @@ Action = namedtuple("Action", ["name", "kwargs", "preconditions", "effects", "fu
 Type = namedtuple("Type", ["type", "cls"])
 
 
+def gen_instance_functions(instance):
+    for method_or_attr in dir(instance):
+        if method_or_attr.startswith('__') or method_or_attr.endswith('__'):
+            continue
+        attr = getattr(instance, method_or_attr)
+        yield method_or_attr, attr
+
+
+def get_instance_predicates(instance, env):
+    data = {}
+    for k, v in gen_instance_functions(instance):
+        if env.func_name(v) in env.rev_predicates.keys():
+            data[k] = v
+    return data
+
+
 class PDDLObjectType(Object):
     def __init__(self, instance, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.instance = instance
+        self.data = {}
+        for k, v in gen_instance_functions(instance):
+            self.data[k] = v
+
+    def __getattr__(self, item):
+        return lambda *args, **kwargs: self.data[item](self, *args, **kwargs)
 
 
 class PDDLParameter(Parameter):
     def __init__(self, name: str, typename: Type, *args, **kwargs):
         super().__init__(name, typename.type, *args, **kwargs)
         self.env = PDDLEnvironment.get_instance()
-        self.data = {}
-        for method_or_attr in dir(typename.cls):
-            attr = getattr(typename.cls, method_or_attr)
-            if method_or_attr.startswith('__') or method_or_attr.endswith('__'):
-                continue
-            if self.env.func_name(attr) in self.env.rev_predicates.keys():
-                self.data[method_or_attr] = attr
+        self.data = get_instance_predicates(typename.cls, self.env)
 
     def __getattr__(self, item):
         return lambda *args, **kwargs: self.data[item](self, *args, **kwargs)
@@ -224,12 +240,17 @@ class PDDLEnvironment:
         for name, args, pre, post, _ in self.actions.values():
             act = PDDLAction(name, **{k: self.types[v] for k, v in args.items()})
             params = {k: act.parameter(k) for k, v in args.items()}
-            vars = {f"var_{k}": Variable(k, self.types[v].type) for k, v in args.items()}
+            # vars = {f"var_{k}": Variable(k, self.types[v].type) for k, v in args.items()}
 
             for p in pre:
-                act.add_precondition(p(**PDDLEnvironment.__get_func_params(p, vars, params)))
+                act.add_precondition(p(**PDDLEnvironment.__get_func_params(p, {"env": self.get_instance()}, params)))
             for q, v in post:
-                act.add_effect(q(**PDDLEnvironment.__get_func_params(q, vars, params)), v)
+                act.add_effect(q(**PDDLEnvironment.__get_func_params(q, {"env": self.get_instance()}, params)), v)
             problem.add_action(act)
 
         return problem
+
+    def var(self, typ):
+        assert typ.__name__ in self.types
+        return Variable(typ.__name__, self.types[typ.__name__].type)
+

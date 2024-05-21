@@ -1,16 +1,19 @@
 from unified_planning.engines import PlanGenerationResultStatus
-from unified_planning.shortcuts import OneshotPlanner, And
+from unified_planning.environment import get_environment
+from unified_planning.shortcuts import OneshotPlanner, And, Not
 
 from domain.PDDLEnvironment import PDDLEnvironment
 from domain.cubeotta.Cube import Cube
+from domain.cubeotta.Dryer import Dryer
+
 
 env = PDDLEnvironment.get_instance()
-
-cube1 = env.add_object(Cube(0))
-cube2 = env.add_object(Cube(1))
+cube0 = env.add_object(Cube(0))
+cube1 = env.add_object(Cube(1))
+dryer0 = env.add_object(Dryer(0))
 
 problem = env.problem()
-problem.add_goal(And(cube1.instance.painted(), cube2.instance.painted()))
+problem.add_goal(And(cube0.instance.painted(), cube1.instance.painted(), cube0.instance.dry(), Not(dryer0.picked())))
 print(problem)
 
 with OneshotPlanner(problem_kind=problem.kind) as planner:
