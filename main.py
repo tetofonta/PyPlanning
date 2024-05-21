@@ -7,6 +7,7 @@ from domain.cubeotta.Brush import Brush
 from domain.cubeotta.Cube import Cube
 from domain.cubeotta.Dryer import Dryer
 from domain.cubeotta.Robot import Robot
+from domain.cubeotta.Color import Color
 
 get_environment().credits_stream = None
 
@@ -16,14 +17,15 @@ cube1 = env.add_object(Cube(1))
 dryer0 = env.add_object(Dryer(0))
 brush0 = env.add_object(Brush(0))
 brush1 = env.add_object(Brush(1))
-robot = env.add_object(Robot())
+color0 = env.add_object(Color("red"))  # for the time being we assume that we only have one color
+robot = env.add_object(Robot())  # we must have one single instance of Robot
 
 problem = env.problem()
 problem.add_goal(And(
     cube0.instance.painted(),
     cube1.instance.painted(),
     cube0.instance.dry(),
-    Not(dryer0.picked())
+    robot.free()
 ))
 print(problem)
 

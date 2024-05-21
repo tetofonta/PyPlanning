@@ -1,4 +1,4 @@
-from unified_planning.shortcuts import Not, And, Exists
+from unified_planning.shortcuts import Not, And
 from domain.PDDLObject import PDDLObject
 from domain.cubeotta.Dryer import Dryer
 from domain.decorators.PDDLAction import PDDLAction

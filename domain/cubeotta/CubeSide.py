@@ -1,6 +1,8 @@
 from unified_planning.shortcuts import And, Not
 
 from domain.PDDLObject import PDDLObject
+from domain.cubeotta.Brush import Brush
+from domain.cubeotta.Dryer import Dryer
 from domain.decorators.PDDLAction import PDDLAction
 from domain.decorators.PDDLEffect import PDDLEffect
 from domain.decorators.PDDLPrecondition import PDDLPrecondition
@@ -45,16 +47,21 @@ class CubeSide(PDDLObject):
     def up(self: 'CubeSide'):
         return self.isUp()
 
-    @PDDLPrecondition(lambda cube, side: And(
+    @PDDLPrecondition(lambda cube, side, brush: And(
         Not(side.painted()),
         side.up(),
         cube.cube_has_side(side),
-        cube.loaded()))
+        cube.loaded(),
+        brush.picked(),
+        brush.hasColor()
+    ))
     @PDDLEffect(lambda cube, side: side.painted(), True)
     @PDDLEffect(lambda cube, side: side.dry(), False)
+    @PDDLEffect(lambda brush: brush.hasColor(), False)
     @PDDLAction
-    def paint(side: 'CubeSide', cube: 'Cube'):
-        print(f"Painting side {side.idx} of cube {side.cube} (Side was {'up' if side.isUp() else 'down'})")
+    def paint(side: 'CubeSide', cube: 'Cube', brush: 'Brush'):
+        print(
+            f"Painting side {side.idx} of cube {side.cube} with brush {brush.idx}")  # (Side was {'up' if side.isUp() else 'down'})
         side.__painted = True
         side.__dry = False
 
