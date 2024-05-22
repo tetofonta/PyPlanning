@@ -1,10 +1,6 @@
 from unified_planning.shortcuts import Not, And, Exists
-from domain.PDDLObject import PDDLObject
-from domain.decorators.PDDLAction import PDDLAction
-from domain.decorators.PDDLEffect import PDDLEffect
-from domain.decorators.PDDLPrecondition import PDDLPrecondition
-from domain.decorators.PDDLPredicate import PDDLPredicate
-from domain.decorators.PDDLType import PDDLType
+from AIROB.domain import PDDLObject
+from AIROB.domain.decorators import PDDLEffect, PDDLPrecondition, PDDLPredicate, PDDLType, PDDLAction
 
 
 @PDDLType
@@ -15,6 +11,9 @@ class Dryer(PDDLObject):
         self.__picked = False
         self.__loaded = False
         self.idx = idx
+
+    def get_id(self) -> str:
+        return f"Dryer_{self.idx}"
 
     def isLoaded(self):
         return self.__loaded

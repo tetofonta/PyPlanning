@@ -1,13 +1,6 @@
-from unified_planning.shortcuts import And, Not
-
-from domain.PDDLObject import PDDLObject
-from domain.cubeotta.Brush import Brush
-from domain.cubeotta.Dryer import Dryer
-from domain.decorators.PDDLAction import PDDLAction
-from domain.decorators.PDDLEffect import PDDLEffect
-from domain.decorators.PDDLPrecondition import PDDLPrecondition
-from domain.decorators.PDDLPredicate import PDDLPredicate
-from domain.decorators.PDDLType import PDDLType
+from unified_planning.shortcuts import Not, And
+from AIROB.domain import PDDLObject
+from AIROB.domain.decorators import PDDLEffect, PDDLPrecondition, PDDLPredicate, PDDLType, PDDLAction
 
 
 @PDDLType
@@ -19,6 +12,9 @@ class CubeSide(PDDLObject):
         self.__dry = True
         self.idx = idx
         self.cube = cube_ref
+
+    def get_id(self) -> str:
+        return f"Cube_{self.cube}_side_{self.idx}"
 
     def isPainted(self: 'CubeSide'):
         return self.__painted

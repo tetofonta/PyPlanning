@@ -1,11 +1,6 @@
 from unified_planning.shortcuts import Not, And, Exists
-from domain.PDDLObject import PDDLObject
-from domain.cubeotta.Color import Color
-from domain.decorators.PDDLAction import PDDLAction
-from domain.decorators.PDDLEffect import PDDLEffect
-from domain.decorators.PDDLPrecondition import PDDLPrecondition
-from domain.decorators.PDDLPredicate import PDDLPredicate
-from domain.decorators.PDDLType import PDDLType
+from AIROB.domain import PDDLObject
+from AIROB.domain.decorators import PDDLEffect, PDDLPrecondition, PDDLPredicate, PDDLType, PDDLAction
 
 
 @PDDLType

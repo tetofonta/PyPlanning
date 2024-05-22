@@ -1,14 +1,12 @@
 import uuid
 from collections import namedtuple, OrderedDict
 from typing import Optional
+from .PDDLObject import PDDLObject
 
 from unified_planning import Environment
-import unified_planning as up
 from unified_planning.model import Object, Fluent, Problem, InstantaneousAction, Variable, Parameter
 from unified_planning.plans import ActionInstance
 from unified_planning.shortcuts import UserType, BoolType
-
-from domain.PDDLObject import PDDLObject
 
 Action = namedtuple("Action", ["name", "kwargs", "preconditions", "effects", "func"])
 Type = namedtuple("Type", ["type", "cls"])
@@ -31,15 +29,20 @@ def get_instance_predicates(instance, env):
 
 
 class PDDLObjectType(Object):
-    def __init__(self, instance, *args, **kwargs):
+    def __init__(self, instance, type_name, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.instance = instance
-        self.data = {}
-        for k, v in gen_instance_functions(instance):
-            self.data[k] = v
+        self.__predicates = {}
+        self.__env = PDDLEnvironment.get_instance()
+        self.type_name = type_name
+        for k, v in gen_instance_functions(instance.__class__):
+            if self.__env.func_name(v) in self.__env.rev_predicates.keys():
+                self.__predicates[k] = v
 
     def __getattr__(self, item):
-        return lambda *args, **kwargs: self.data[item](self, *args, **kwargs)
+        if item in self.__predicates:
+            return lambda *args, **kwargs: self.__predicates[item](self, *args, **kwargs)
+        return getattr(self.instance, item)
 
 
 class PDDLParameter(Parameter):
@@ -52,7 +55,7 @@ class PDDLParameter(Parameter):
         return lambda *args, **kwargs: self.data[item](self, *args, **kwargs)
 
 
-class PDDLAction(InstantaneousAction):
+class PDDLActionType(InstantaneousAction):
     def __init__(self,
                  _name: str,
                  _parameters=None,
@@ -117,7 +120,7 @@ class PDDLEnvironment:
     def add_object(self, instance: PDDLObject):
         assert type(instance).__name__ in self.types
         typ = self.types[type(instance).__name__].type
-        self.objects[instance.get_id()] = PDDLObjectType(instance, instance.get_id(), typ)
+        self.objects[instance.get_id()] = PDDLObjectType(instance, type(instance).__name__, instance.get_id(), typ)
         for t in type(instance).__mro__:
             if t == PDDLObject or t == object:
                 break
@@ -127,12 +130,12 @@ class PDDLEnvironment:
         return self.objects[instance.get_id()]
 
     @staticmethod
-    def __root_func(func):
-        return func if '__code__' in dir(func) else PDDLEnvironment.__root_func(func.func)
+    def root_func(func):
+        return func if '__code__' in dir(func) else PDDLEnvironment.root_func(func.func)
 
     @staticmethod
     def func_name(func):
-        rf = PDDLEnvironment.__root_func(func)
+        rf = PDDLEnvironment.root_func(func)
         if rf is None:
             return None
         return rf.__code__.co_qualname.replace('.', '_')
@@ -238,7 +241,7 @@ class PDDLEnvironment:
 
         # Actions
         for name, args, pre, post, _ in self.actions.values():
-            act = PDDLAction(name, **{k: self.types[v] for k, v in args.items()})
+            act = PDDLActionType(name, **{k: self.types[v] for k, v in args.items()})
             params = {k: act.parameter(k) for k, v in args.items()}
             # vars = {f"var_{k}": Variable(k, self.types[v].type) for k, v in args.items()}
 
@@ -253,4 +256,3 @@ class PDDLEnvironment:
     def var(self, typ):
         assert typ.__name__ in self.types
         return Variable(typ.__name__, self.types[typ.__name__].type)
-

@@ -1,4 +1,4 @@
-from domain.PDDLEnvironment import PDDLEnvironment
+from AIROB.domain import PDDLEnvironment
 
 
 class __PDDLPrecondition:

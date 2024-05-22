@@ -1,12 +1,7 @@
 from unified_planning.shortcuts import Not, And, Exists, Forall
-from domain.PDDLEnvironment import PDDLEnvironment
-from domain.PDDLObject import PDDLObject
-from domain.cubeotta.CubeSide import CubeSide
-from domain.decorators.PDDLAction import PDDLAction
-from domain.decorators.PDDLEffect import PDDLEffect
-from domain.decorators.PDDLPrecondition import PDDLPrecondition
-from domain.decorators.PDDLPredicate import PDDLPredicate
-from domain.decorators.PDDLType import PDDLType
+from .CubeSide import CubeSide
+from AIROB.domain import PDDLObject
+from AIROB.domain.decorators import PDDLEffect, PDDLPrecondition, PDDLPredicate, PDDLType, PDDLAction, PDDLEnvironment
 
 
 @PDDLType
@@ -18,6 +13,9 @@ class Cube(PDDLObject):
         self.__loaded = False
         self.idx = idx
         self.__dry = True
+
+    def get_id(self) -> str:
+        return f"Cube_{self.idx}"
 
     @PDDLPredicate
     def cube_has_side(self: 'Cube', side: 'CubeSide'):

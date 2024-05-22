@@ -1,5 +1,4 @@
-from domain.PDDLEnvironment import PDDLEnvironment
-from domain.PDDLObject import PDDLObject
+from AIROB.domain import PDDLEnvironment, PDDLObject
 
 
 def PDDLType(cls):
