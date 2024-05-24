@@ -2,14 +2,22 @@ import argparse
 
 from unified_planning.environment import get_environment
 from flask import Flask
-from AIROB.domain import PDDLEnvironment
+from AIROB.domain import PDDLEnvironment, get_type_predicates
 
 app = Flask(__name__)
 
 
-@app.route("/objects")
+@app.route("/api/objects")
 def objects():
     return {k: v.type_name for k, v in PDDLEnvironment.get_instance().objects.items()}
+
+@app.route("/api/predicates/<typ>")
+def predicates(typ):
+    if typ not in PDDLEnvironment.get_instance().types:
+        return {}, 404
+    typ = PDDLEnvironment.get_instance().types[typ]
+    preds = get_type_predicates(typ.cls, PDDLEnvironment.get_instance())
+    return list(preds.keys())
 
 
 if __name__ == '__main__':

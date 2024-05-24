@@ -20,7 +20,7 @@ def gen_instance_functions(instance):
         yield method_or_attr, attr
 
 
-def get_instance_predicates(instance, env):
+def get_type_predicates(instance, env):
     data = {}
     for k, v in gen_instance_functions(instance):
         if env.func_name(v) in env.rev_predicates.keys():
@@ -49,7 +49,7 @@ class PDDLParameter(Parameter):
     def __init__(self, name: str, typename: Type, *args, **kwargs):
         super().__init__(name, typename.type, *args, **kwargs)
         self.env = PDDLEnvironment.get_instance()
-        self.data = get_instance_predicates(typename.cls, self.env)
+        self.data = get_type_predicates(typename.cls, self.env)
 
     def __getattr__(self, item):
         return lambda *args, **kwargs: self.data[item](self, *args, **kwargs)
