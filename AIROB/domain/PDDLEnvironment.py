@@ -28,6 +28,21 @@ def get_type_predicates(instance, env):
     return data
 
 
+def get_type_predicate_descriptors(instance, env):
+    data = {}
+    for k, v in gen_instance_functions(instance):
+        if env.func_name(v) in env.rev_predicates.keys():
+            data[k] = {"name": k, "params": PDDLEnvironment.root_func(v).__annotations__}
+    return data
+
+
+def get_type_predicate_args(instance, pred, env):
+    f = getattr(instance, pred)
+    if not env.func_name(f) in env.rev_predicates.keys():
+        return {}, 404
+    return {k: v for k, v in PDDLEnvironment.root_func(f).__annotations__.items() if k != 'self'}
+
+
 class PDDLObjectType(Object):
     def __init__(self, instance, type_name, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -95,6 +110,9 @@ class PDDLEnvironment:
         self.actions = {}
         self.type_action = {}
         self.predicates_compiled = {}
+
+    def get_objects_hierarchy(self, type_str):
+        return self.hierarchy[type_str]
 
     @staticmethod
     def get_instance():

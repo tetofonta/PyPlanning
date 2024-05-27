@@ -5,18 +5,19 @@ import MenuItem from '@mui/material/MenuItem';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import {Add, Close, Delete, Edit} from "@mui/icons-material"
-import {GraphNode} from "reagraph";
-import {NodeContextType, NodeType} from "./NodeContext.tsx";
+import {NodeContextType, NodeType, PDDLGraphNode} from "./NodeContext.tsx";
+import {NodeModalContextType} from "./NodeModal.tsx";
 
 export type NodeMenuProps = {
-    node: GraphNode & { node: NodeType };
+    node: PDDLGraphNode;
     onClose: () => void,
-    nodeContext: NodeContextType
+    nodeContext: NodeContextType,
+    nodeModalContext: NodeModalContextType
 };
 
 export const NodeMenu = (props: NodeMenuProps) => {
 
-    const {nodeContext, onClose, node} = props;
+    const {nodeContext, onClose, node, nodeModalContext} = props;
 
     return <Paper sx={{width: 320, maxWidth: '100%', position: 'relative', left: 160, top: 168 / 2}}>
         <MenuList>
@@ -30,8 +31,9 @@ export const NodeMenu = (props: NodeMenuProps) => {
 
             <MenuItem onClick={() => {
                 nodeContext.add_new(node.id, {
-                    node: NodeType.WAYPOINT,
-                    id: Math.random().toString(26).substring(2)
+                    type: NodeType.WAYPOINT,
+                    label: "New State",
+                    predicates: []
                 })
                 onClose()
             }}>
@@ -41,19 +43,25 @@ export const NodeMenu = (props: NodeMenuProps) => {
                 <ListItemText>New Waypoint</ListItemText>
             </MenuItem>
 
-            {node.node !== NodeType.START && <MenuItem onClick={onClose}>
+            {node.type !== NodeType.START && <MenuItem onClick={() => {
+                nodeContext.remove(node.id)
+                onClose()
+            }}>
                 <ListItemIcon>
                     <Delete fontSize="small"/>
                 </ListItemIcon>
                 <ListItemText>Delete Node</ListItemText>
             </MenuItem>}
 
-            <MenuItem onClick={onClose}>
+            {node.type !== NodeType.START && <MenuItem onClick={() => {
+                nodeModalContext.show(node.id)
+                onClose()
+            }}>
                 <ListItemIcon>
                     <Edit fontSize="small"/>
                 </ListItemIcon>
                 <ListItemText>Edit Node</ListItemText>
-            </MenuItem>
+            </MenuItem>}
 
         </MenuList>
     </Paper>

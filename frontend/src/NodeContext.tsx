@@ -1,12 +1,29 @@
-import {createContext, useCallback, useContext, useEffect, useState} from "react";
+import React, {createContext, useCallback, useContext, useMemo, useState} from "react";
 import {GraphEdge, GraphNode} from "reagraph";
 
+export type Predicate = { object: string, predicate: string, params: { [k: string]: string }, value: boolean }
+
+export type PDDLGraphData = {
+    type: NodeType,
+    selected?: boolean
+    child?: string
+    father?: string
+    label: string,
+    predicates: Predicate[]
+}
+
+export type PDDLGraphNode = GraphNode & PDDLGraphData
+
 export type NodeContextType = {
-    nodes: GraphNode[];
+    nodes: PDDLGraphNode[];
     edges: GraphEdge[];
-    add_new: (father: string, child: { node: NodeType, id: string }) => void;
+    add_new: (father: string, child: Omit<PDDLGraphNode, "id">) => void;
     remove: (id: string) => void;
     select: (id: string) => void;
+    setPredicates: (id: string, predicates: Predicate[]) => void;
+    get: (id: string) => PDDLGraphData | undefined;
+    changeLabel: (id: string, label: string) => void;
+    reset: () => void;
 }
 
 export const NodeContext = createContext<NodeContextType>({
@@ -17,6 +34,13 @@ export const NodeContext = createContext<NodeContextType>({
     remove: () => {
     },
     select: () => {
+    },
+    setPredicates: () => {
+    },
+    changeLabel: () => {
+    },
+    get: () => undefined,
+    reset: () => {
     }
 })
 
@@ -27,24 +51,22 @@ export enum NodeType {
     WAYPOINT
 }
 
-const getNodeFromStep = (id: string, step: { node: NodeType, father?: string | null, child?: string | null }) => {
-    if (step.node === NodeType.START)
+const getNodeFromStep = (id: string, step: PDDLGraphData): PDDLGraphNode => {
+    if (step.type === NodeType.START)
         return {
             id,
             fill: "#F00",
-            label: "Current State",
-            node: step.node
+            ...step
         }
     else
         return {
             id,
-            label: id,
-            node: step.node
+            ...step
         }
 }
 
 const getEdges = (start: string, steps: {
-    [k: string]: { node: NodeType, father?: string | null, child?: string | null }
+    [k: string]: PDDLGraphData
 }): GraphEdge[] => {
     const ret: GraphEdge[] = []
     let a_k: string | null | undefined = start
@@ -61,47 +83,62 @@ const getEdges = (start: string, steps: {
     return ret
 }
 
-const steps: {
-    [k: string]: { node: NodeType, father?: string | null, child?: string | null }
-} = {"START": {node: NodeType.START, father: null, child: null}}
+export const NodeContextProvider = (props: { children: React.ReactElement | React.ReactElement[] }) => {
 
+    const [steps, setSteps] = useState<{ [k: string]: PDDLGraphData }>({
+        "Initial State": {type: NodeType.START, predicates: [], label: "Initial State"},
+    })
 
-export const NodeContextProvider = (props: { children: any }) => {
-
-    const [state, setState] = useState<NodeContextType>(
-        {
-            nodes: [],
-            edges: [],
-            add_new: () => {
-            },
-            remove: () => {
-            },
-            select: () => {
-            }
-        })
-
-    const add_new = useCallback((father: string, child: { node: NodeType, id: string }) => {
-        console.log("AAAA")
+    const add_new = useCallback((father: string, child: Omit<PDDLGraphNode, "id">) => {
         if (!steps[father]) return;
-        steps[father] = {...steps[father], child: child.id};
-        steps[child.id] = {node: child.node, father, child: null}
-        setState(state => ({
-            ...state,
-            edges: getEdges("START", steps),
-            nodes: Object.keys(steps).map(k => getNodeFromStep(k, steps[k]))
-        }))
-    }, [])
+        const id = Math.random().toString(26).substring(2)
+        setSteps(s => ({
+            ...s,
+            [father]: {...s[father], child: id},
+            [id]: {...child, father, child: s[father].child}
+        }));
+    }, [steps])
 
-    useEffect(() => {
-        setState(state => ({
-            ...state,
-            edges: [],
-            nodes: Object.keys(steps).map(k => getNodeFromStep(k, steps[k])),
-            add_new
-        }))
-    }, [add_new])
+    const remove = useCallback((id: string) => {
+        if (!steps[id]) return;
+        const new_steps = {...steps}
+        const old_child = steps[id].child
+        const old_father = steps[id].father
+        if (!old_father) return;
+        new_steps[old_father].child = old_child
+        delete new_steps[id]
+        setSteps(new_steps)
+    }, [steps])
 
-    return <NodeContext.Provider value={state}>
+    const setPredicates = useCallback((id: string, predicates: Predicate[]) => setSteps(e => ({
+        ...e,
+        [id]: {...e[id], predicates}
+    })), [steps])
+    const get = useCallback((id: string) => steps[id], [steps])
+
+    const changeLabel = useCallback((id: string, label: string) => {
+        setSteps(s => ({...s, [id]: {...s[id], label}}))
+    }, [steps])
+
+    const nodes = useMemo(() => Object.keys(steps).map(k => getNodeFromStep(k, steps[k])), [steps])
+    const edges = useMemo(() => getEdges("Initial State", steps), [steps])
+
+    console.log(steps)
+
+    return <NodeContext.Provider value={{
+        nodes,
+        edges,
+        add_new,
+        remove,
+        setPredicates,
+        get,
+        changeLabel: changeLabel,
+        reset: () => setSteps({
+            "Initial State": {type: NodeType.START, predicates: [], label: "Initial State"},
+        }),
+        select: () => {
+        }
+    }}>
         {props.children}
     </NodeContext.Provider>
 

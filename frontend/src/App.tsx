@@ -2,11 +2,13 @@ import {GraphCanvas, recommendLayout} from "reagraph"
 import {AppBar, IconButton, Toolbar, Typography} from "@mui/material";
 import "./style/app.sass"
 import {NodeMenu} from "./NodeMenu.tsx";
-import {NodeContextProvider, useNodeContext} from "./NodeContext.tsx";
-import AddIcon from "@mui/icons-material/Add"
+import {NodeContextProvider, PDDLGraphNode, useNodeContext} from "./NodeContext.tsx";
+import {Refresh} from "@mui/icons-material"
+import {NodeModalContextProvider, useNodeModalContext} from "./NodeModal.tsx";
 
 const Content = () => {
     const nodeContext = useNodeContext()
+    const nodeModalContext = useNodeModalContext()
     const layout = recommendLayout(nodeContext.nodes, nodeContext.edges);
 
     return <>
@@ -28,8 +30,11 @@ const Content = () => {
                     AI-ROB
                 </Typography>
                 <div className="toolbar">
-                    <IconButton style={{color: "#FFF"}}>
-                        <AddIcon/>
+                    <IconButton style={{color: "#FFF"}} onClick={() => {
+                        if (confirm("Everything will be lost, even your mental sanity. Are you sure to continue?"))
+                            nodeContext.reset()
+                    }}>
+                        <Refresh/>
                     </IconButton>
                 </div>
             </Toolbar>
@@ -39,8 +44,9 @@ const Content = () => {
                 nodes={nodeContext.nodes}
                 edges={nodeContext.edges}
                 layoutType={layout}
-                contextMenu={({data, onClose}) => <NodeMenu nodeContext={nodeContext} node={data as any}
-                                                            onClose={onClose}/>}
+                contextMenu={({data, onClose}) =>
+                    <NodeMenu nodeContext={nodeContext} nodeModalContext={nodeModalContext}
+                              node={data as unknown as PDDLGraphNode} onClose={onClose}/>}
                 draggable
             />
         </div>
@@ -52,7 +58,9 @@ function App() {
 
     return (
         <NodeContextProvider>
-            <Content/>
+            <NodeModalContextProvider>
+                <Content/>
+            </NodeModalContextProvider>
         </NodeContextProvider>
     )
 }
