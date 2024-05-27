@@ -7,17 +7,26 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import {Add, Close, Delete, Edit} from "@mui/icons-material"
 import {NodeContextType, NodeType, PDDLGraphNode} from "./NodeContext.tsx";
 import {NodeModalContextType} from "./NodeModal.tsx";
+import {useEffect} from "react";
 
 export type NodeMenuProps = {
     node: PDDLGraphNode;
     onClose: () => void,
     nodeContext: NodeContextType,
-    nodeModalContext: NodeModalContextType
+    nodeModalContext: NodeModalContextType,
+    graphContainerRef: any
 };
 
 export const NodeMenu = (props: NodeMenuProps) => {
 
-    const {nodeContext, onClose, node, nodeModalContext} = props;
+    const {nodeContext, onClose, node, nodeModalContext, graphContainerRef} = props;
+
+    useEffect(() => {
+        if(!graphContainerRef.current)
+            return
+        const canvas = graphContainerRef.current.getElementsByTagName("canvas")[0];
+        canvas.onclick = () => onClose()
+    }, [graphContainerRef])
 
     return <Paper sx={{width: 320, maxWidth: '100%', position: 'relative', left: 160, top: 168 / 2}}>
         <MenuList>

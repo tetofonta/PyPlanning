@@ -12,7 +12,7 @@ class Robot(PDDLObject):
     def get_id(self) -> str:
         return "Cobotta"
 
-    @PDDLPredicate
+    @PDDLPredicate()
     def free(self: 'Robot'):
         return self.__free
 

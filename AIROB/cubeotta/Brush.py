@@ -16,7 +16,7 @@ class Brush(PDDLObject):
     def isLoaded(self):
         return self.__loaded
 
-    @PDDLPredicate
+    @PDDLPredicate()
     def loaded(self: 'Brush'):
         return self.isLoaded()
 
@@ -61,7 +61,7 @@ class Brush(PDDLObject):
         brush.__color = None
         brush.__hasColor = False
 
-    @PDDLPredicate
+    @PDDLPredicate()
     def hasColor(self: 'Brush'):
         return self.__hasColor
 
@@ -71,7 +71,7 @@ class Brush(PDDLObject):
     def setColor(self, c):
         self.__color = c
 
-    @PDDLPredicate
+    @PDDLPredicate()
     def picked(self: 'Brush'):
         return self.isPicked()
 

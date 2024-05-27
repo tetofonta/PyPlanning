@@ -18,7 +18,7 @@ class Dryer(PDDLObject):
     def isLoaded(self):
         return self.__loaded
 
-    @PDDLPredicate
+    @PDDLPredicate()
     def loaded(self: 'Dryer'):
         return self.isLoaded()
 
@@ -56,7 +56,7 @@ class Dryer(PDDLObject):
         print(f"Turning off dryer {dryer.idx}")
         dryer.__turnedOn = False
 
-    @PDDLPredicate
+    @PDDLPredicate()
     def turnedOn(self: 'Dryer'):
         return self.isTurnedOn()
 
@@ -66,7 +66,7 @@ class Dryer(PDDLObject):
     def setTurnedOn(self, on):
         self.__turnedOn = on
 
-    @PDDLPredicate
+    @PDDLPredicate()
     def picked(self: 'Dryer'):
         return self.isPicked()
 

@@ -12,6 +12,6 @@ class Color(PDDLObject):
     def get_id(self) -> str:
         return f"Color_{self.name}"
 
-    @PDDLPredicate
+    @PDDLPredicate()
     def empty(self: 'Color'):
         return self.__empty

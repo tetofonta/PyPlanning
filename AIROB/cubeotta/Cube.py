@@ -17,7 +17,7 @@ class Cube(PDDLObject):
     def get_id(self) -> str:
         return f"Cube_{self.idx}"
 
-    @PDDLPredicate
+    @PDDLPredicate()
     def cube_has_side(self: 'Cube', side: 'CubeSide'):
         for s in self.sides:
             if s.instance.get_id() == side.get_id(): return True
@@ -26,16 +26,18 @@ class Cube(PDDLObject):
     def isPainted(self):
         return all(map(lambda x: x.instance.isPainted(), self.sides))
 
+    @PDDLPredicate(derived=True)
     def painted(self: 'Cube'):
         return And(x.painted() for x in self.sides)
 
+    @PDDLPredicate(derived=True)
     def dry(self: 'Cube'):
         return And(x.dry() for x in self.sides)
 
     def isLoaded(self):
         return self.__loaded
 
-    @PDDLPredicate
+    @PDDLPredicate()
     def loaded(self: 'Cube'):
         return self.isLoaded()
 

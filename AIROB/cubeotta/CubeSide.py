@@ -25,7 +25,7 @@ class CubeSide(PDDLObject):
     def setUp(self, up):
         self.__up = up
 
-    @PDDLPredicate
+    @PDDLPredicate()
     def dry(self: 'CubeSide'):
         return self.isDry()
 
@@ -35,11 +35,11 @@ class CubeSide(PDDLObject):
     def setDry(self, d: bool):
         self.__dry = d
 
-    @PDDLPredicate
+    @PDDLPredicate()
     def painted(self: 'CubeSide'):
         return self.isPainted()
 
-    @PDDLPredicate
+    @PDDLPredicate()
     def up(self: 'CubeSide'):
         return self.isUp()
 

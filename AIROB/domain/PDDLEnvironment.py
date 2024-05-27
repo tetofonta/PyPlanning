@@ -31,7 +31,7 @@ def get_type_predicates(instance, env):
 def get_type_predicate_descriptors(instance, env):
     data = {}
     for k, v in gen_instance_functions(instance):
-        if env.func_name(v) in env.rev_predicates.keys():
+        if env.func_name(v) in env.rev_predicates.keys() and not env.predicateHidden(env.rev_predicates[env.func_name(v)]):
             data[k] = {"name": k, "params": PDDLEnvironment.root_func(v).__annotations__}
     return data
 
@@ -114,6 +114,12 @@ class PDDLEnvironment:
     def get_objects_hierarchy(self, type_str):
         return self.hierarchy[type_str]
 
+    def predicateHidden(self, func):
+        return self.predicates[func][4]
+
+    def predicateDerived(self, func):
+        return self.predicates[func][1] is None
+
     @staticmethod
     def get_instance():
         if PDDLEnvironment.__PDDL_ENV_INSTANCE is None:
@@ -173,9 +179,9 @@ class PDDLEnvironment:
 
         return name, params, kwargs
 
-    def add_predicate(self, func, default: bool):
+    def add_predicate(self, func, default: bool, derived: bool, hidden: bool):
         name, params, kwargs = self.__func_to_params(func)
-        self.predicates[func] = (name, BoolType(), kwargs, default)
+        self.predicates[func] = (name, BoolType() if not derived else None, kwargs, default, hidden)
         self.rev_predicates[name] = func
 
     def add_action(self, func):
@@ -223,7 +229,9 @@ class PDDLEnvironment:
     def compile_predicates(self):
         self.predicates_compiled = {}
         for k, v in self.predicates.items():
-            name, ret, params, default = v
+            name, ret, params, default, _ = v
+            if ret is None:
+                continue
             types = {k: self.types[v].type for k, v in params.items()}
             self.predicates_compiled[k] = Fluent(name, ret, **types)
 
@@ -239,6 +247,8 @@ class PDDLEnvironment:
             param_dict[arg_name] = merged[arg_name]
         return param_dict
 
+
+
     def problem(self, name=None):
         problem = Problem(name if name is not None else str(uuid.uuid1()))
 
@@ -248,7 +258,9 @@ class PDDLEnvironment:
         # create predicates
         self.compile_predicates()
         for k, v in self.predicates.items():
-            _, _, params, default = v
+            _, ret, params, default, _ = v
+            if ret is None:
+                continue
             problem.add_fluent(self.predicates_compiled[k], default_initial_value=default)
 
             for values in self.__for_all((), *map(lambda t: self.hierarchy[t], params.values())):
