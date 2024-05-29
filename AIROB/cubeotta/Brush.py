@@ -13,6 +13,9 @@ class Brush(PDDLObject):
         self.__loaded = False
         self.idx = idx
 
+    def get_id(self) -> str:
+        return f"Brush_{self.idx}"
+
     def isLoaded(self):
         return self.__loaded
 

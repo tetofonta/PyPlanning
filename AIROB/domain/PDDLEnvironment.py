@@ -215,6 +215,9 @@ class PDDLEnvironment:
         assert instance.get_id() in self.objects
         return self.objects[instance.get_id()]
 
+    def get_object_by_id(self, id):
+        return self.objects[id]
+
     def get_object_instance(self, instance):
         return self.objects[instance.name].instance
 
@@ -223,8 +226,15 @@ class PDDLEnvironment:
         parameters = list(map(lambda x: self.objects[str(x)].instance, action.actual_parameters))
         act(*parameters)
 
+    def serialize_action(self, action: ActionInstance):
+        return {"action": action.action.name, "params": list(map(lambda x: str(x), action.actual_parameters))}
+
     def predicate(self, fn):
-        return self.predicates_compiled[self.rev_predicates[self.func_name(fn)]]
+        key_or_function = self.rev_predicates[self.func_name(fn)]
+        if key_or_function in self.predicates_compiled:
+            return self.predicates_compiled[key_or_function]
+        else:
+            return key_or_function
 
     def compile_predicates(self):
         self.predicates_compiled = {}

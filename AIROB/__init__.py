@@ -1,7 +1,11 @@
 import argparse
+import json
 
+from unified_planning.engines import PlanGenerationResultStatus
 from unified_planning.environment import get_environment
-from flask import Flask
+from flask import Flask, request
+from unified_planning.shortcuts import Not, And, OneshotPlanner
+
 from AIROB.domain import PDDLEnvironment, get_type_predicates, get_type_predicate_descriptors, get_type_predicate_args
 
 app = Flask(__name__)
@@ -32,6 +36,33 @@ def predicates_params(typ, pred):
     return params
 
 
+@app.route("/api/plan", methods=["POST"])
+def plan():
+    prob = PDDLEnvironment.get_instance().problem("problem")
+
+    goal_predicates = []
+    for p in json.loads(request.data.decode()):
+        obj = PDDLEnvironment.get_instance().get_object_by_id(p['object'])
+        predicate_fn = getattr(obj, p['predicate'])
+        raw = predicate_fn(**{k: PDDLEnvironment.get_instance().get_object_by_id(v) for k, v in p['params'].items()})
+        goal_predicates.append(
+            raw if p['value'] else Not(raw)
+        )
+
+    prob.add_goal(And(*goal_predicates))
+    actions = []
+    with OneshotPlanner(problem_kind=prob.kind) as planner:
+        result = planner.solve(prob)
+        if result.status == PlanGenerationResultStatus.SOLVED_SATISFICING:
+            print("Pyperplan returned: %s" % result.plan)
+            for action in result.plan.actions:
+                actions.append({"action": action.action.name, "params": list(map(lambda x: str(x), action.actual_parameters))})
+        else:
+            print("No plan found.")
+
+    return actions
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='AIROB')
     parser.add_argument('-d', '--domain', type=str, required=True, help='Domain package')
@@ -42,8 +73,6 @@ if __name__ == '__main__':
     domain_parser = domain.args()
     domain_args, _ = domain_parser.parse_known_args(args=domain_args)
     env = domain.create_env(PDDLEnvironment.get_instance(), domain_args)
-
-    print(env.problem())
     app.run(debug=True, host='0.0.0.0', port=5000)
 
 
