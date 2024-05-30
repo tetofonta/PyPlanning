@@ -12,12 +12,20 @@ export type PDDLGraphData = {
     predicates: Predicate[];
 }
 
+export type PDDLGraphAction = PDDLGraphData & {
+    name: string,
+    params: string[]
+    user: boolean
+    user_message: string
+}
+
 export type PDDLGraphNode = GraphNode & PDDLGraphData
 
 export type NodeContextType = {
     nodes: PDDLGraphNode[];
     edges: GraphEdge[];
-    add_new: (father: string, child: Omit<PDDLGraphNode, "id">) => void;
+    selected: string,
+    add_new: (father: string, child: Omit<PDDLGraphNode, "id">) => string;
     append_new: (child: Omit<PDDLGraphNode, "id">) => void;
     remove: (id: string) => void;
     select: (id: string) => void;
@@ -28,14 +36,15 @@ export type NodeContextType = {
     getSelected: () => PDDLGraphData | undefined;
     getNextWaypoint: () => PDDLGraphData | undefined;
     changeLabel: (id: string, label: string) => void;
+    plan: (id?: string) => void;
+    execute: (single_step: boolean, id?: string) => void;
     reset: () => void;
 }
 
 export const NodeContext = createContext<NodeContextType>({
     nodes: [],
     edges: [],
-    add_new: () => {
-    },
+    add_new: () => "",
     append_new: () => {
     },
     remove: () => {
@@ -51,9 +60,12 @@ export const NodeContext = createContext<NodeContextType>({
     },
     next: () => {
     },
+    plan: () => {},
+    execute: () => {},
     getSelected: () => undefined,
     getNextWaypoint: () => undefined,
-    hasNext: () => false
+    hasNext: () => false,
+    selected: "",
 })
 
 export const useNodeContext = () => useContext(NodeContext)
@@ -109,6 +121,27 @@ const getEdges = (start: string, steps: {
     return ret
 }
 
+function add_new_internal(steps: any, father: string, child: PDDLGraphData) {
+    if (!steps[father]){
+        console.error("Node", father, "does not exists", steps)
+        return "";
+    }
+    const id = Math.random().toString(26).substring(2)
+    console.log("Adding", father, "->", id, "->", steps[father].child)
+    return [{
+        ...steps,
+        [father]: {...steps[father], child: id},
+        [id]: {...child, father, child: steps[father].child}
+    }, id]
+}
+
+async function execute_internal(action: PDDLGraphAction){
+    if(action.user)
+        return alert(action.user_message)
+
+    await fetch(`/api/execute/${action.name}`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(action.params)})
+}
+
 export const NodeContextProvider = (props: { children: React.ReactElement | React.ReactElement[] }) => {
 
     const [steps, setSteps] = useState<{ [k: string]: PDDLGraphData }>({
@@ -117,13 +150,9 @@ export const NodeContextProvider = (props: { children: React.ReactElement | Reac
     const [selected, setSelected] = useState<string>("Initial State")
 
     const add_new = useCallback((father: string, child: Omit<PDDLGraphNode, "id">) => {
-        if (!steps[father]) return;
-        const id = Math.random().toString(26).substring(2)
-        setSteps(s => ({
-            ...s,
-            [father]: {...s[father], child: id},
-            [id]: {...child, father, child: s[father].child}
-        }));
+        const [s, id] = add_new_internal(steps, father, child)
+        setSteps(s);
+        return id
     }, [steps])
     const remove = useCallback((id: string) => {
         if (!steps[id]) return;
@@ -152,9 +181,10 @@ export const NodeContextProvider = (props: { children: React.ReactElement | Reac
     }, [steps, selected])
     const changeLabel = useCallback((id: string, label: string) => {
         setSteps(s => ({...s, [id]: {...s[id], label}}))
-    }, [steps])
+    }, [steps, selected])
     const select = useCallback((id: string) => {
         const n = {...steps, [id]: {...steps[id], selected: true}}
+        console.log(steps, n)
         if(selected) n[selected].selected = false
         setSteps(n)
         setSelected(id)
@@ -165,14 +195,109 @@ export const NodeContextProvider = (props: { children: React.ReactElement | Reac
 
     }, [selected, steps])
     const next = useCallback(() => {
+        console.log(steps, selected)
         if(!hasNext()) return;
         select(steps[selected].child as string)
     }, [selected, steps])
 
-    const nodes = useMemo(() => Object.keys(steps).map(k => getNodeFromStep(k, steps[k])), [steps])
-    const edges = useMemo(() => getEdges("Initial State", steps), [steps])
+    const plan = useCallback((id?: string) => {
+        id = id ?? selected
+        const next_node = steps[id].child
+        if(!next_node || !steps[next_node]) return;
 
-    console.log(steps)
+        // remove all actions in this transition
+        let cur_node = next_node
+        const next_steps = {...steps}
+        while (next_steps[cur_node].type == NodeType.ACTION){
+            const ch = next_steps[cur_node].child
+            delete next_steps[cur_node]
+            if(!ch) return
+
+            cur_node = ch
+            next_steps[id].child = ch
+            next_steps[ch].father = id
+        }
+
+        fetch("/api/plan", {
+            method: 'POST',
+            headers: {'Content-Type': "application/json"},
+            body: JSON.stringify(getNextWaypoint()?.predicates)
+        })
+            .then(res => res.json())
+            .then(data => {
+                return data.reverse().reduce((a: string, e: any) => {
+                    console.log(a)
+                    return add_new_internal(a[0], id, {
+                        type: NodeType.ACTION,
+                        predicates: [],
+                        selected: false,
+                        label: `${e.user ? "USER: " : ""}${e.params[0]}.${e.action}(${e.params.slice(1).join(", ")})`,
+                        user: e.user,
+                        user_message: e.user_message || "",
+                        name: e.action,
+                        params: e.params
+                    } as PDDLGraphAction)
+                }, [next_steps, ""])
+            })
+            .then(([steps, id]) => {
+                if(id) {
+                    steps[selected].selected = false
+                    steps[id].selected = true
+                    setSelected(id)
+                }
+                setSteps(steps)
+            }).catch(() => {
+        })
+    }, [steps, selected])
+
+    const execute = useCallback(async (single_step: boolean, id?: string) => {
+        id = id ?? selected
+        const s = {...steps}
+        s[selected].selected = false
+        s[id].selected = true
+        setSelected(id)
+        setSteps(s)
+
+
+        let cur_node: string|undefined = id
+        while (cur_node && s[cur_node].type != NodeType.ACTION) {
+            if(!s[cur_node].child) return
+
+            s[cur_node].selected = false
+            cur_node = s[cur_node].child as string
+            s[cur_node].selected = true
+            setSelected(cur_node)
+            setSteps(s)
+
+            if(single_step) return
+        }
+
+        if(!cur_node)
+            return
+
+        while (cur_node && s[cur_node].type == NodeType.ACTION){
+            try{
+                await execute_internal(s[cur_node] as PDDLGraphAction)
+            } catch (e) {
+                alert(`Action ${s[cur_node].label} failed`)
+                return
+            }
+
+            if(!s[cur_node].child) return
+
+            s[cur_node].selected = false
+            cur_node = steps[cur_node].child as string
+            s[cur_node].selected = true
+
+            setSelected(cur_node)
+            setSteps(s)
+
+            if(single_step) return
+        }
+    }, [steps, selected])
+
+    const nodes = useMemo(() => Object.keys(steps).map(k => getNodeFromStep(k, steps[k])), [steps, selected])
+    const edges = useMemo(() => getEdges("Initial State", steps), [steps, selected])
 
     return <NodeContext.Provider value={{
         nodes,
@@ -182,15 +307,21 @@ export const NodeContextProvider = (props: { children: React.ReactElement | Reac
         setPredicates,
         get,
         changeLabel: changeLabel,
-        reset: () => setSteps({
-            "Initial State": {type: NodeType.START, predicates: [], label: "Initial State", selected: true},
-        }),
+        reset: () => {
+            setSelected("Initial State")
+            setSteps({
+                "Initial State": {type: NodeType.START, predicates: [], label: "Initial State", selected: true},
+            })
+        },
         select,
         next,
         hasNext,
         getSelected,
         getNextWaypoint,
-        append_new: (child) => add_new(selected, child)
+        plan,
+        execute,
+        append_new: (child) => add_new(selected, child),
+        selected
     }}>
         {props.children}
     </NodeContext.Provider>

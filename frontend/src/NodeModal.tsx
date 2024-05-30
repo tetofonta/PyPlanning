@@ -116,7 +116,7 @@ const PredicateInput = (props: any) => {
                 object: formSelectedObj,
                 predicate: formSelectedPred,
                 params: formSelectedParams,
-                value: formSelectedVal
+                value: formSelectedVal == "True"
             })
             setFormSelectedObj("")
             setFormSelectedPred("")
@@ -180,9 +180,11 @@ export const NodeModalContextProvider = (props: { children: React.ReactElement |
                     key={i}>{o.object}.{o.predicate}({Object.keys(o.params).map(e => `${e}=${o.params[e]}`)}) = {o.value ? "True" : "False"}</Typography>
                     <IconButton
                         onClick={() => {
+                            console.log("AAAAAAAAAAAAAAAAAAAAA", i)
                             setStatePredicates(p => {
-                                p.splice(i, 1)
-                                return p
+                                const a = [...p]
+                                a.splice(i, 1)
+                                return a
                             })
                         }}><Delete/></IconButton></div>)}
 

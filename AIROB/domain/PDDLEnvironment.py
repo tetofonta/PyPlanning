@@ -110,6 +110,7 @@ class PDDLEnvironment:
         self.actions = {}
         self.type_action = {}
         self.predicates_compiled = {}
+        self.user_actions = {}
 
     def get_objects_hierarchy(self, type_str):
         return self.hierarchy[type_str]
@@ -184,9 +185,14 @@ class PDDLEnvironment:
         self.predicates[func] = (name, BoolType() if not derived else None, kwargs, default, hidden)
         self.rev_predicates[name] = func
 
-    def add_action(self, func):
+    def add_action(self, func, user=False):
         name, params, kwargs = self.__func_to_params(func)
         self.actions[name] = Action(name, kwargs, list(), list(), func)
+        if user and name not in self.user_actions:
+            self.user_actions[name] = None
+
+    def add_action_message(self, func, action):
+        self.user_actions[action] = func
 
     def add_action_precondition(self, func, precond):
         name = self.func_name(func)
@@ -222,9 +228,21 @@ class PDDLEnvironment:
         return self.objects[instance.name].instance
 
     def execute_action(self, action: ActionInstance):
-        act = self.actions[action.action.name].func
-        parameters = list(map(lambda x: self.objects[str(x)].instance, action.actual_parameters))
+        self.execute_action_raw(action.action.name, action.actual_parameters)
+
+    def execute_action_raw(self, name, parameters):
+        if name not in self.actions:
+            return
+        act = self.actions[name].func
+        parameters = list(map(lambda x: self.objects[str(x)].instance, parameters))
         act(*parameters)
+        
+    def user_message(self, action: ActionInstance):
+        if action.action.name not in self.user_actions or self.user_actions[action.action.name] is None:
+            return "No Message"
+        act = self.user_actions[action.action.name]
+        parameters = list(map(lambda x: self.objects[str(x)].instance, action.actual_parameters))
+        return act(*parameters)
 
     def serialize_action(self, action: ActionInstance):
         return {"action": action.action.name, "params": list(map(lambda x: str(x), action.actual_parameters))}

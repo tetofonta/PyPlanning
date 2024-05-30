@@ -4,7 +4,7 @@ import MenuList from '@mui/material/MenuList';
 import MenuItem from '@mui/material/MenuItem';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
-import {Add, Close, Delete, Edit} from "@mui/icons-material"
+import {Add, Close, Delete, Edit, CheckBox} from "@mui/icons-material"
 import {NodeContextType, NodeType, PDDLGraphNode} from "./NodeContext.tsx";
 import {NodeModalContextType} from "./NodeModal.tsx";
 import {useEffect} from "react";
@@ -70,6 +70,16 @@ export const NodeMenu = (props: NodeMenuProps) => {
                     <Edit fontSize="small"/>
                 </ListItemIcon>
                 <ListItemText>Edit Node</ListItemText>
+            </MenuItem>}
+
+            {!node.selected && <MenuItem onClick={() => {
+                nodeContext.select(node.id)
+                onClose()
+            }}>
+                <ListItemIcon>
+                    <CheckBox fontSize="small"/>
+                </ListItemIcon>
+                <ListItemText>Select</ListItemText>
             </MenuItem>}
 
         </MenuList>

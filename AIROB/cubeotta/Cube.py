@@ -1,7 +1,8 @@
 from unified_planning.shortcuts import Not, And, Exists, Forall
 from .CubeSide import CubeSide
 from AIROB.domain import PDDLObject
-from AIROB.domain.decorators import PDDLEffect, PDDLPrecondition, PDDLPredicate, PDDLType, PDDLAction, PDDLEnvironment
+from AIROB.domain.decorators import PDDLEffect, PDDLPrecondition, PDDLPredicate, PDDLType, PDDLAction, PDDLEnvironment, \
+    PDDLActionMessage
 
 
 @PDDLType
@@ -10,9 +11,9 @@ class Cube(PDDLObject):
         super().__init__()
         env = PDDLEnvironment.get_instance()
         self.sides = [env.add_object(CubeSide(i == 0, i, idx)) for i in range(6)]
-        self.__loaded = False
+        self.loaded = False
         self.idx = idx
-        self.__dry = True
+        self.dry = True
 
     def get_id(self) -> str:
         return f"Cube_{self.idx}"
@@ -35,7 +36,7 @@ class Cube(PDDLObject):
         return And(x.dry() for x in self.sides)
 
     def isLoaded(self):
-        return self.__loaded
+        return self.loaded
 
     @PDDLPredicate()
     def loaded(self: 'Cube'):
@@ -45,18 +46,26 @@ class Cube(PDDLObject):
                       And(Not(cube.loaded()),
                           Not(Exists(Cube.loaded(env.var(Cube)), env.var(Cube)))))
     @PDDLEffect(lambda cube: cube.loaded(), True)
-    @PDDLAction
+    @PDDLAction(True)
     def load(cube: 'Cube'):
         print(f"Loading cube {cube.idx}")
-        cube.__loaded = True
+        cube.loaded = True
+
+    @PDDLActionMessage("Cube_load")
+    def load_message(cube: 'Cube'):
+        return f"Please load the cube {cube.idx}"
 
     @PDDLPrecondition(lambda cube, env: And(cube.loaded(),
                                             Forall(CubeSide.dry(env.var(CubeSide)), env.var(CubeSide))))
     @PDDLEffect(lambda cube: cube.loaded(), False)
-    @PDDLAction
+    @PDDLAction()
     def unload(cube: 'Cube'):
         print(f"Unloading cube {cube.idx}")
-        cube.__loaded = False
+        cube.loaded = False
+
+    @PDDLActionMessage("Cube_unload")
+    def unload_message(cube: 'Cube'):
+        return f"Please unload the cube {cube.idx}"
 
     @PDDLPrecondition(lambda cube, old_up, new_up: And(old_up.up(),
                                                        Not(new_up.up()),
@@ -65,8 +74,12 @@ class Cube(PDDLObject):
                                                        old_up.dry()))
     @PDDLEffect(lambda old_up: old_up.up(), False)
     @PDDLEffect(lambda new_up: new_up.up(), True)
-    @PDDLAction
+    @PDDLAction(True)
     def rotate(cube: 'Cube', old_up: 'CubeSide', new_up: 'CubeSide'):
         print(f"Rotating cube {cube.idx} side {new_up.idx} up")
         old_up.setUp(False)
         new_up.setUp(True)
+
+    @PDDLActionMessage("Cube_rotate")
+    def rotate_message(cube: 'Cube', old_up: 'CubeSide', new_up: 'CubeSide'):
+        return f"Please rotate the cube from side {old_up.idx} to side {new_up.idx}"

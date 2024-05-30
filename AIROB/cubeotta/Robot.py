@@ -7,14 +7,14 @@ from AIROB.domain.decorators import PDDLEffect, PDDLPrecondition, PDDLPredicate,
 class Robot(PDDLObject):
     def __init__(self):
         super().__init__()
-        self.__free = True
+        self.free = True
 
     def get_id(self) -> str:
         return "Cobotta"
 
     @PDDLPredicate()
     def free(self: 'Robot'):
-        return self.__free
+        return self.free
 
     @PDDLPrecondition(lambda brush, robot:
                       And(Not(brush.picked()),
@@ -23,11 +23,11 @@ class Robot(PDDLObject):
                           robot.free()))
     @PDDLEffect(lambda brush: brush.picked(), True)
     @PDDLEffect(lambda robot: robot.free(), False)
-    @PDDLAction
+    @PDDLAction()
     def pickUpBrush(robot: 'Robot', brush: 'Brush'):
         print(f"Picking up brush {brush.idx}")
         brush.setPicked(True)
-        robot.__free = False
+        robot.free = False
 
     @PDDLPrecondition(lambda dryer, robot:
                       And(Not(dryer.picked()),
@@ -36,11 +36,11 @@ class Robot(PDDLObject):
                           robot.free()))
     @PDDLEffect(lambda dryer: dryer.picked(), True)
     @PDDLEffect(lambda robot: robot.free(), False)
-    @PDDLAction
+    @PDDLAction()
     def pickUpDryer(robot: 'Robot', dryer: 'Dryer'):
         print(f"Picking up dryer {dryer.idx}")
         dryer.setPicked(True)
-        robot.__free = False
+        robot.free = False
 
     @PDDLPrecondition(lambda brush, robot:
                       And(brush.picked(),
@@ -49,11 +49,11 @@ class Robot(PDDLObject):
                           Not(robot.free())))
     @PDDLEffect(lambda brush: brush.picked(), False)
     @PDDLEffect(lambda robot: robot.free(), True)
-    @PDDLAction
+    @PDDLAction()
     def putDownBrush(robot: 'Robot', brush: 'Brush'):
         print(f"Putting down brush {brush.idx}")
         brush.setPicked(False)
-        robot.__free = True
+        robot.free = True
 
     @PDDLPrecondition(lambda dryer, robot:
                       And(
@@ -63,8 +63,8 @@ class Robot(PDDLObject):
                           Not(robot.free())))
     @PDDLEffect(lambda dryer: dryer.picked(), False)
     @PDDLEffect(lambda robot: robot.free(), True)
-    @PDDLAction
+    @PDDLAction()
     def putDownDryer(robot: 'Robot', dryer: 'Dryer'):
         print(f"Putting down dryer {dryer.idx}")
         dryer.setPicked(False)
-        robot.__free = True
+        robot.free = True

@@ -1,18 +1,32 @@
-import {GraphCanvas, recommendLayout} from "reagraph"
-import {AppBar, IconButton, Toolbar, Typography} from "@mui/material";
+import {GraphCanvas, GraphCanvasRef} from "reagraph"
+import {AppBar, IconButton, Toolbar, Tooltip, Typography} from "@mui/material";
 import "./style/app.sass"
 import {NodeMenu} from "./NodeMenu.tsx";
 import {NodeContextProvider, NodeType, PDDLGraphNode, useNodeContext} from "./NodeContext.tsx";
 import {PlayArrow, Refresh, HourglassBottom, FastForward} from "@mui/icons-material"
 import {NodeModalContextProvider, useNodeModalContext} from "./NodeModal.tsx";
-import {useRef} from "react";
+import {useEffect, useRef, useState} from "react";
 
 const Content = () => {
 
     const nodeContext = useNodeContext()
     const nodeModalContext = useNodeModalContext()
     const graphRef = useRef() as any
-    // const layout = recommendLayout(nodeContext.nodes, nodeContext.edges);
+    const graph = useRef<GraphCanvasRef|null>(null)
+    const [layout, setLayout] = useState("forceDirected2d");
+
+    useEffect(() => {
+        if(nodeContext.selected)
+            try {
+                graph.current?.centerGraph([nodeContext.selected])
+            } catch (e) {
+                setTimeout(() => graph.current?.centerGraph([nodeContext.selected]), 500)
+            }
+    }, [nodeContext.selected]);
+
+    useEffect(() => {
+        setLayout(l => (l == "forceDirected2d" ? "forceDirected3d" : "forceDirected2d"))
+    }, [nodeContext.nodes, nodeContext.edges]);
 
     return <>
         <AppBar position="fixed" sx={{zIndex: (theme) => theme.zIndex.drawer + 1}} className="navbar">
@@ -33,49 +47,46 @@ const Content = () => {
                     AI-ROB
                 </Typography>
                 <div className="toolbar">
-                    <IconButton disabled={nodeContext.getSelected()?.type == NodeType.ACTION || !nodeContext.hasNext()}
-                                style={{color: (nodeContext.getSelected()?.type != NodeType.ACTION && nodeContext.hasNext()) ? "#FFF" : "#AAA"}} onClick={() => {
-                        //plan and insert new action nodes if we are not in an action node.
-                        fetch("/api/plan", {
-                            method: 'POST',
-                            headers: {'Content-Type': "application/json"},
-                            body: JSON.stringify(nodeContext.getNextWaypoint()?.predicates)
-                        }).then(res => res.json())
-                        .then(data => {
-                            data.reverse().forEach((e: any) => nodeContext.append_new({
-                                type: NodeType.ACTION,
-                                predicates: [],
-                                selected: false,
-                                label: `${e.action}(${e.params.join(", ")})`
-                            }))
-                        }).then(() => {
-                            // setTimeout(() => nodeContext.next(), 1000) TODO
-                        }).catch(() => {
-                        })
-                    }}>
-                        <HourglassBottom/>
-                    </IconButton>
-                    <IconButton disabled={!nodeContext.hasNext()}
-                                style={{color: nodeContext.hasNext() ? "#FFF" : "#AAA"}} onClick={() => {
-                        nodeContext.next()
-                    }}>
-                        <PlayArrow/>
-                    </IconButton>
-                    {/*<IconButton disabled={!nodeContext.hasNext()}*/}
-                    {/*            style={{color: nodeContext.hasNext() ? "#FFF" : "#AAA"}} onClick={async () => {*/}
-                    {/*                while (nodeContext.getSelected()?.child != nodeContext.getNextWaypoint()) {*/}
-                    {/*                    nodeContext.next()*/}
-                    {/*                    await new Promise<void>(res => setTimeout(() => res(), 500))*/}
-                    {/*                }*/}
-                    {/*}}>*/}
-                    {/*    <FastForward/>*/}
-                    {/*</IconButton>*/}
-                    <IconButton style={{color: "#FFF"}} onClick={() => {
-                        if (confirm("Everything will be lost, even your mental sanity. Are you sure to continue?"))
-                            nodeContext.reset()
-                    }}>
-                        <Refresh/>
-                    </IconButton>
+                    <Tooltip title={"Plan"}>
+                        <span>
+                            <IconButton
+                                disabled={nodeContext.getSelected()?.type == NodeType.ACTION || !nodeContext.hasNext()}
+                                style={{color: (nodeContext.getSelected()?.type != NodeType.ACTION && nodeContext.hasNext()) ? "#FFF" : "#AAA"}}
+                                onClick={() => nodeContext.plan()}>
+                                <HourglassBottom/>
+                            </IconButton>
+                        </span>
+                    </Tooltip>
+                    <Tooltip title={"Single Step"}>
+                        <span>
+                            <IconButton disabled={!nodeContext.hasNext()}
+                                        style={{color: nodeContext.hasNext() ? "#FFF" : "#AAA"}} onClick={() => {
+                                nodeContext.execute(true)
+                            }}>
+                                <PlayArrow/>
+                            </IconButton>
+                        </span>
+                    </Tooltip>
+                    <Tooltip title={"Execute"}>
+                        <span>
+                            <IconButton disabled={!nodeContext.hasNext()}
+                                        style={{color: nodeContext.hasNext() ? "#FFF" : "#AAA"}} onClick={async () => {
+                                nodeContext.execute(false)
+                            }}>
+                                <FastForward/>
+                            </IconButton>
+                        </span>
+                    </Tooltip>
+                    <Tooltip title={"Reset"}>
+                        <span>
+                            <IconButton style={{color: "#FFF"}} onClick={() => {
+                                if (confirm("Everything will be lost, even your mental sanity. Are you sure to continue?"))
+                                    nodeContext.reset()
+                            }}>
+                                <Refresh/>
+                            </IconButton>
+                        </span>
+                    </Tooltip>
                 </div>
             </Toolbar>
         </AppBar>
@@ -83,7 +94,8 @@ const Content = () => {
             <GraphCanvas
                 nodes={nodeContext.nodes}
                 edges={nodeContext.edges}
-                layoutType={"treeLr2d"}
+                ref={graph}
+                layoutType={layout}
                 contextMenu={({data, onClose}) =>
                     <NodeMenu nodeContext={nodeContext} nodeModalContext={nodeModalContext}
                               node={data as unknown as PDDLGraphNode} onClose={onClose} graphContainerRef={graphRef}/>}
