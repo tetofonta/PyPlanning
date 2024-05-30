@@ -1,6 +1,6 @@
 from unified_planning.shortcuts import Not, And, Exists
 from AIROB.domain import PDDLObject
-from AIROB.domain.decorators import PDDLEffect, PDDLPrecondition, PDDLPredicate, PDDLType, PDDLAction
+from AIROB.domain.decorators import PDDLEffect, PDDLPrecondition, PDDLPredicate, PDDLType, PDDLAction, PDDLActionMessage
 
 
 @PDDLType
@@ -31,6 +31,10 @@ class Dryer(PDDLObject):
         print(f"Loading dryer {dryer.idx}")
         dryer.loaded = True
 
+    @PDDLActionMessage("Dryer_load")
+    def load_message(dryer: 'Dryer'):
+        return f"Please load the dryer {dryer.idx}"
+
     @PDDLPrecondition(lambda dryer: And(dryer.loaded(),
                                         Not(dryer.turnedOn()),
                                         Not(dryer.picked())))
@@ -39,6 +43,10 @@ class Dryer(PDDLObject):
     def unload(dryer: 'Dryer'):
         print(f"Unloading dryer {dryer.idx}")
         dryer.loaded = False
+
+    @PDDLActionMessage("Dryer_unload")
+    def unload_message(dryer: 'Dryer'):
+        return f"Please unload the dryer {dryer.idx}"
 
     @PDDLPrecondition(lambda dryer:
                       And(Not(dryer.turnedOn()), dryer.loaded(), dryer.picked()))
