@@ -75,6 +75,12 @@ def execute(action):
     return {}
 
 
+@app.route("/api/state")
+def get_state():
+    return PDDLEnvironment.get_instance().get_current_state()
+
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='AIROB')
     parser.add_argument('-d', '--domain', type=str, required=True, help='Domain package')

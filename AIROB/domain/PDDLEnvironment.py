@@ -31,7 +31,8 @@ def get_type_predicates(instance, env):
 def get_type_predicate_descriptors(instance, env):
     data = {}
     for k, v in gen_instance_functions(instance):
-        if env.func_name(v) in env.rev_predicates.keys() and not env.predicateHidden(env.rev_predicates[env.func_name(v)]):
+        if env.func_name(v) in env.rev_predicates.keys() and not env.predicateHidden(
+                env.rev_predicates[env.func_name(v)]):
             data[k] = {"name": k, "params": PDDLEnvironment.root_func(v).__annotations__}
     return data
 
@@ -236,7 +237,7 @@ class PDDLEnvironment:
         act = self.actions[name].func
         parameters = list(map(lambda x: self.objects[str(x)].instance, parameters))
         act(*parameters)
-        
+
     def user_message(self, action: ActionInstance):
         if action.action.name not in self.user_actions or self.user_actions[action.action.name] is None:
             return "No Message"
@@ -263,6 +264,15 @@ class PDDLEnvironment:
             types = {k: self.types[v].type for k, v in params.items()}
             self.predicates_compiled[k] = Fluent(name, ret, **types)
 
+    def get_current_state(self):
+        self.compile_predicates()
+        ret = {}
+        for k, v in self.predicates.items():
+            _, ret, params, default, _ = v
+            for values in self.__for_all((), *map(lambda t: self.hierarchy[t], params.values())):
+                ret[f"{k}({', '.join(list(map(str, params.values())))})"] = k(
+                    *map(lambda x: self.objects[x].instance, values))
+
     @staticmethod
     def __get_func_params(func, *dicts):
         param_dict = {}
@@ -274,8 +284,6 @@ class PDDLEnvironment:
             assert arg_name in merged
             param_dict[arg_name] = merged[arg_name]
         return param_dict
-
-
 
     def problem(self, name=None):
         problem = Problem(name if name is not None else str(uuid.uuid1()))

@@ -4,10 +4,10 @@ import MenuList from '@mui/material/MenuList';
 import MenuItem from '@mui/material/MenuItem';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
-import {Add, Close, Delete, Edit, CheckBox} from "@mui/icons-material"
-import {NodeContextType, NodeType, PDDLGraphNode} from "./NodeContext.tsx";
+import {Add, ArrowDownward, ArrowUpward, CheckBox, Close, Delete, Edit} from "@mui/icons-material"
+import {NodeContextType, NodeType, PDDLGraphCondition, PDDLGraphNode} from "./NodeContext.tsx";
 import {NodeModalContextType} from "./NodeModal.tsx";
-import {useEffect} from "react";
+import {useEffect, useState} from "react";
 
 export type NodeMenuProps = {
     node: PDDLGraphNode;
@@ -20,9 +20,11 @@ export type NodeMenuProps = {
 export const NodeMenu = (props: NodeMenuProps) => {
 
     const {nodeContext, onClose, node, nodeModalContext, graphContainerRef} = props;
+    const [connectOpen, setConnectOpen] = useState(false)
+    const [connectConditionOpen, setConnectConditionOpen] = useState(false)
 
     useEffect(() => {
-        if(!graphContainerRef.current)
+        if (!graphContainerRef.current)
             return
         const canvas = graphContainerRef.current.getElementsByTagName("canvas")[0];
         canvas.onclick = () => onClose()
@@ -52,6 +54,62 @@ export const NodeMenu = (props: NodeMenuProps) => {
                 <ListItemText>New Waypoint</ListItemText>
             </MenuItem>
 
+            <MenuItem onClick={() => {
+                const text = prompt("Insert message prompt")
+                nodeContext.add_new(node.id, {
+                    type: NodeType.CONDITION,
+                    label: "New Condition",
+                    predicates: [],
+                    text: text || "",
+                } as PDDLGraphCondition)
+                onClose()
+            }}>
+                <ListItemIcon>
+                    <Add fontSize="small"/>
+                </ListItemIcon>
+                <ListItemText>New Condition</ListItemText>
+            </MenuItem>
+
+            <MenuItem onClick={() => {
+                setConnectOpen(!connectOpen)
+            }}>
+                <ListItemIcon>
+                    {!connectOpen && <ArrowDownward fontSize="small"/>}
+                    {connectOpen && <ArrowUpward fontSize="small"/>}
+                </ListItemIcon>
+                <ListItemText>Connect...</ListItemText>
+            </MenuItem>
+
+            <div style={{transition: ".3s ease", height: connectOpen ? 200 : 0, overflow: 'scroll'}}>
+                {connectOpen && <MenuList>
+                    {nodeContext.nodes.filter(e => e.id != "Initial State" && e.id != node.id).map(e => <MenuItem onClick={() => {
+                        nodeContext.connect(node.id, e.id)
+                        // console.log(node.id, e.id)
+                    }}><ListItemText>{e.label}</ListItemText></MenuItem>)}
+                </MenuList>}
+            </div>
+
+            {node.type === NodeType.CONDITION && [
+                <MenuItem onClick={() => {
+                    setConnectConditionOpen(!connectConditionOpen)
+                }}>
+                    <ListItemIcon>
+                        {!connectConditionOpen && <ArrowDownward fontSize="small"/>}
+                        {connectConditionOpen && <ArrowUpward fontSize="small"/>}
+                    </ListItemIcon>
+                    <ListItemText>Connect False Branch...</ListItemText>
+                </MenuItem>,
+
+                <div style={{transition: ".3s ease", height: connectConditionOpen ? 200 : 0, overflow: 'scroll'}}>
+                    {connectConditionOpen && <MenuList>
+                        {nodeContext.nodes.filter(e => e.id != "Initial State" && e.id != node.id).map(e => <MenuItem onClick={() => {
+                            nodeContext.connect(node.id, e.id, "childFalse")
+                            // console.log(node.id, e.id)
+                        }}><ListItemText>{e.label}</ListItemText></MenuItem>)}
+                    </MenuList>}
+                </div>
+            ]}
+
             {node.type !== NodeType.START && <MenuItem onClick={() => {
                 nodeContext.remove(node.id)
                 onClose()
@@ -60,7 +118,8 @@ export const NodeMenu = (props: NodeMenuProps) => {
                     <Delete fontSize="small"/>
                 </ListItemIcon>
                 <ListItemText>Delete Node</ListItemText>
-            </MenuItem>}
+            </MenuItem>
+            }
 
             {node.type !== NodeType.START && <MenuItem onClick={() => {
                 nodeModalContext.show(node.id)
@@ -70,7 +129,8 @@ export const NodeMenu = (props: NodeMenuProps) => {
                     <Edit fontSize="small"/>
                 </ListItemIcon>
                 <ListItemText>Edit Node</ListItemText>
-            </MenuItem>}
+            </MenuItem>
+            }
 
             {!node.selected && <MenuItem onClick={() => {
                 nodeContext.select(node.id)

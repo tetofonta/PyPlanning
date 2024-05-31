@@ -1,5 +1,5 @@
 import React, {createContext, useCallback, useContext, useEffect, useState} from "react";
-import {Predicate, useNodeContext} from "./NodeContext.tsx";
+import {NodeType, Predicate, useNodeContext} from "./NodeContext.tsx";
 import {
     Button,
     Dialog,
@@ -31,10 +31,10 @@ const PredicateInput = (props: any) => {
     const [formSelectedObj, setFormSelectedObj] = useState<string>("")
     const [formSelectedPred, setFormSelectedPred] = useState<string>("")
     const [formSelectedVal, setFormSelectedVal] = useState<string>("True")
-    const [formSelectedParams, setFormSelectedParams] = useState<{[k: string]: string}>({})
+    const [formSelectedParams, setFormSelectedParams] = useState<{ [k: string]: string }>({})
 
     const [selectablePredicates, setSelectablePredicates] = useState<string[]>([])
-    const [params, setParams] = useState<{[k: string]: string[]}>({})
+    const [params, setParams] = useState<{ [k: string]: string[] }>({})
 
     useEffect(() => {
         setFormSelectedObj("")
@@ -174,23 +174,27 @@ export const NodeModalContextProvider = (props: { children: React.ReactElement |
                 <DialogContentText><Typography variant="overline">Edit node id: {id}</Typography></DialogContentText>
                 <TextField autoFocus required margin="dense" name="node_id" label="Node ID" type="text" fullWidth
                            variant="standard" defaultValue={nodeContext.get(id || "")?.label}/>
-                <Typography>Predicates</Typography>
 
-                {statePredicates.map((o, i) => <div style={{display: "flex", alignItems: "center"}}><Typography
-                    key={i}>{o.object}.{o.predicate}({Object.keys(o.params).map(e => `${e}=${o.params[e]}`)}) = {o.value ? "True" : "False"}</Typography>
-                    <IconButton
-                        onClick={() => {
-                            console.log("AAAAAAAAAAAAAAAAAAAAA", i)
-                            setStatePredicates(p => {
-                                const a = [...p]
-                                a.splice(i, 1)
-                                return a
-                            })
-                        }}><Delete/></IconButton></div>)}
+                {nodeContext.get(id || "")?.type === NodeType.WAYPOINT && <>
+                    <Typography>Predicates</Typography>
 
+                    {statePredicates.map((o, i) => <div style={{display: "flex", alignItems: "center"}}><Typography
+                        key={i}>{o.object}.{o.predicate}({Object.keys(o.params).map(e => `${e}=${o.params[e]}`)})
+                        = {o.value ? "True" : "False"}</Typography>
+                        <IconButton
+                            onClick={() => {
+                                setStatePredicates(p => {
+                                    const a = [...p]
+                                    a.splice(i, 1)
+                                    return a
+                                })
+                            }}><Delete/></IconButton></div>)}
+
+                    <PredicateInput objects={objects} id={id}
+                                    add={(e: Predicate) => setStatePredicates(p => [...p, e])}/>
+                </>}
                 <input type="hidden" value={JSON.stringify(statePredicates)} name="predicates"/>
 
-                <PredicateInput objects={objects} id={id} add={(e: Predicate) => setStatePredicates(p => [...p, e])} />
             </DialogContent>
             <DialogActions>
                 <Button onClick={() => setId(null)}>Cancel</Button>

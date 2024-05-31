@@ -1,9 +1,9 @@
-import {GraphCanvas, GraphCanvasRef} from "reagraph"
+import {GraphCanvas, GraphCanvasRef, LayoutTypes} from "reagraph"
 import {AppBar, IconButton, Toolbar, Tooltip, Typography} from "@mui/material";
 import "./style/app.sass"
 import {NodeMenu} from "./NodeMenu.tsx";
 import {NodeContextProvider, NodeType, PDDLGraphNode, useNodeContext} from "./NodeContext.tsx";
-import {PlayArrow, Refresh, HourglassBottom, FastForward} from "@mui/icons-material"
+import {PlayArrow, Refresh, HourglassBottom, FastForward, Add} from "@mui/icons-material"
 import {NodeModalContextProvider, useNodeModalContext} from "./NodeModal.tsx";
 import {useEffect, useRef, useState} from "react";
 
@@ -57,6 +57,19 @@ const Content = () => {
                             </IconButton>
                         </span>
                     </Tooltip>
+                    <Tooltip title={"Add Node"}>
+                        <span>
+                            <IconButton
+                                style={{color: "#FFF"}}
+                                onClick={() => nodeContext.add_new(null, {
+                                    type: NodeType.WAYPOINT,
+                                    label: "New State",
+                                    predicates: []
+                                })}>
+                                <Add/>
+                            </IconButton>
+                        </span>
+                    </Tooltip>
                     <Tooltip title={"Single Step"}>
                         <span>
                             <IconButton disabled={!nodeContext.hasNext()}
@@ -95,12 +108,12 @@ const Content = () => {
                 nodes={nodeContext.nodes}
                 edges={nodeContext.edges}
                 ref={graph}
-                layoutType={layout}
+                layoutType={layout as LayoutTypes}
                 contextMenu={({data, onClose}) =>
                     <NodeMenu nodeContext={nodeContext} nodeModalContext={nodeModalContext}
                               node={data as unknown as PDDLGraphNode} onClose={onClose} graphContainerRef={graphRef}/>}
                 onNodeDoubleClick={(node) => {
-                    if (node.id != "Initial State")
+                    if (node.id !== "Initial State")
                         nodeModalContext.show(node.id)
                 }}
                 draggable
