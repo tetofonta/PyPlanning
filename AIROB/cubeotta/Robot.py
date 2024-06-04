@@ -1,8 +1,8 @@
-import std_msgs.msg
+# import std_msgs.msg
 from unified_planning.shortcuts import Not, And
 from AIROB.domain import PDDLObject
 from AIROB.domain.decorators import PDDLEffect, PDDLPrecondition, PDDLPredicate, PDDLType, PDDLAction
-import rospy
+# import rospy
 
 
 @PDDLType

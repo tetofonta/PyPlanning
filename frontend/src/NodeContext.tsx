@@ -161,9 +161,19 @@ function add_new_internal(steps: any, father: string|null, child: PDDLGraphData)
     }, father ? {[father]: {...steps[father], child: id}} : {}), id]
 }
 
+function get_next_waypoint(steps: any, selected: string){
+    let current = steps[steps[selected].child]
+    while (current && current.type != NodeType.WAYPOINT && current.type != NodeType.CONDITION) {
+        if (!current.child)
+            return undefined
+        current = steps[current.child]
+    }
+    return current
+}
+
 async function execute_internal(action: PDDLGraphAction) {
     if (action.user)
-        return alert(action.user_message)
+        alert(action.user_message)
 
     await fetch(`/api/execute/${action.name}`, {
         method: "POST",
@@ -205,13 +215,7 @@ export const NodeContextProvider = (props: { children: React.ReactElement | Reac
     const get = useCallback((id: string) => steps[id], [steps])
     const getSelected = useCallback(() => steps[selected], [steps, selected])
     const getNextWaypoint = useCallback(() => {
-        let current = steps[selected]
-        while (current && current.type != NodeType.WAYPOINT) {
-            if (!current.child)
-                return undefined
-            current = steps[current.child]
-        }
-        return current
+        return get_next_waypoint(steps, selected)
     }, [steps, selected])
     const changeLabel = useCallback((id: string, label: string) => {
         setSteps(s => ({...s, [id]: {...s[id], label}}))
@@ -267,10 +271,12 @@ export const NodeContextProvider = (props: { children: React.ReactElement | Reac
             next_steps[ch].father = id
         }
 
+        console.log(next_steps[child || ""], next_steps[id])
+
         fetch("/api/plan", {
             method: 'POST',
             headers: {'Content-Type': "application/json"},
-            body: JSON.stringify(getNextWaypoint()?.predicates)
+            body: JSON.stringify(next_steps[child || ""]?.predicates || [])
         })
             .then(res => res.json())
             .then(data => {

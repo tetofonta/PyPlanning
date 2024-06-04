@@ -50,11 +50,12 @@ def plan():
         )
 
     prob.add_goal(And(*goal_predicates))
+    print(prob)
     actions = []
-    with OneshotPlanner(problem_kind=prob.kind) as planner:
+    with OneshotPlanner(problem_kind=prob.kind, name='fast-downward') as planner:
         result = planner.solve(prob)
         if result.status == PlanGenerationResultStatus.SOLVED_SATISFICING:
-            print("Pyperplan returned: %s" % result.plan)
+            print("plan returned: %s" % result.plan)
             for action in result.plan.actions:
                 actions.append({
                     "action": action.action.name,
@@ -78,7 +79,6 @@ def execute(action):
 @app.route("/api/state")
 def get_state():
     return PDDLEnvironment.get_instance().get_current_state()
-
 
 
 if __name__ == '__main__':
