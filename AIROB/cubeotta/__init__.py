@@ -6,6 +6,7 @@ from .Cube import Cube
 from .Brush import Brush
 from .Color import Color
 from .Robot import Robot
+import rospy
 
 
 def args():
@@ -15,6 +16,9 @@ def args():
 
 
 def create_env(env: PDDLEnvironment, args):
+    # init ros node https://github.com/rospypi/simple
+    # rospy.init_node("cobotta")
+
     for i in range(args.cubes):
         env.add_object(Cube(i))
 

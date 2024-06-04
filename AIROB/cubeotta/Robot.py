@@ -1,6 +1,8 @@
+import std_msgs.msg
 from unified_planning.shortcuts import Not, And
 from AIROB.domain import PDDLObject
 from AIROB.domain.decorators import PDDLEffect, PDDLPrecondition, PDDLPredicate, PDDLType, PDDLAction
+import rospy
 
 
 @PDDLType
@@ -8,9 +10,14 @@ class Robot(PDDLObject):
     def __init__(self):
         super().__init__()
         self.free = True
+        # self.free_sub = rospy.Subscriber("cobotta_free", std_msgs.msg.Bool, self.on_cobotta_free)
+        # self.pub = rospy.Publisher('pub', std_msgs.msg.String, queue_size=10)
 
     def get_id(self) -> str:
         return "Cobotta"
+
+    def on_cobotta_free(self, msg):
+        self.free = msg
 
     @PDDLPredicate()
     def free(self: 'Robot'):
@@ -28,6 +35,7 @@ class Robot(PDDLObject):
         print(f"Picking up brush {brush.idx}")
         brush.setPicked(True)
         robot.free = False
+        # robot.pub.publish(brush.idx)
 
     @PDDLPrecondition(lambda dryer, robot:
                       And(Not(dryer.picked()),
